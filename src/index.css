@@ -1,13 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================
+   🌐 GLOBAL STYLE
+========================= */
+
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  @apply bg-gray-50 text-gray-800;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* =========================
+   🔤 TYPOGRAPHY
+========================= */
+
+h1 {
+  @apply text-2xl font-bold;
+}
+
+h2 {
+  @apply text-xl font-semibold;
+}
+
+h3 {
+  @apply text-lg font-semibold;
+}
+
+/* =========================
+   🧱 COMPONENTS
+========================= */
+
+.input {
+  @apply w-full p-3 border border-gray-300 rounded-xl text-base 
+         focus:outline-none focus:ring-2 focus:ring-green-500;
+}
+
+.btn {
+  @apply px-4 py-2 rounded-xl border text-sm font-medium transition;
+}
+
+.btn-active {
+  @apply bg-green-600 text-white border-green-600;
+}
+
+.btn-primary {
+  @apply w-full bg-green-600 text-white py-3 rounded-xl text-lg 
+         hover:bg-green-700 transition;
+}
+
+.card {
+  @apply bg-white p-4 rounded-xl shadow space-y-2;
+}
+
+/* =========================
+   📱 MOBILE OPTIMIZE
+========================= */
+
+.container-mobile {
+  @apply max-w-md mx-auto p-4;
+}
+
+/* =========================
+   ❤️ HEALTH COLOR SYSTEM
+========================= */
+
+.text-risk-low {
+  @apply text-green-500;
+}
+
+.text-risk-mid {
+  @apply text-yellow-500;
+}
+
+.text-risk-high {
+  @apply text-red-500;
+}
+
+/* =========================
+   🧩 UTILITY
+========================= */
+
+.divider {
+  @apply border-t my-2;
+}
+
+.center-screen {
+  @apply min-h-screen flex items-center justify-center;
+}
+
+/* =========================
+   ✨ SCROLL (optional)
+========================= */
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
