@@ -78,7 +78,7 @@ export default function CreateUser() {
         alert("✅ พบข้อมูลแล้ว");
       } else {
         setIsExisting(false);
-        alert("❗ ไม่พบข้อมูล กรุณากรอกข้อมูลใหม่");
+        alert("❗ ไม่พบข้อมูล คุณสามารถสร้างข้อมูลใหม่ได้");
       }
     } catch (err) {
       alert("เกิดข้อผิดพลาดในการค้นหา");
@@ -130,7 +130,7 @@ export default function CreateUser() {
       {/* STATUS */}
       {isSearched && !isExisting && (
         <div className="bg-yellow-100 text-yellow-800 p-2 rounded text-sm">
-          ❗ ไม่พบข้อมูล กรุณากรอกข้อมูลใหม่
+          ❗ ไม่พบข้อมูล คุณสามารถสร้างข้อมูลใหม่ได้
         </div>
       )}
 
