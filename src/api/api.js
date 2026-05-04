@@ -4,7 +4,7 @@ import axios from "axios";
 // 🌐 BASE URL (fix ปัญหา network error)
 // ===============================
 const BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:3000/api";
+  process.env.REACT_APP_API_URL || "https://carevigoapi.onrender.com/api";
 
 console.log("🌐 API BASE URL:", BASE_URL);
 
