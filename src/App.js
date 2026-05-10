@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import CreateUser from "./pages/CreateUser";
 import AddHealth from "./pages/AddHealth";
-import Dashboard from "./pages/Dashboard";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 import ComingSoon from "./pages/ComingSoon";
 export default function App() {
@@ -12,8 +13,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<CreateUser />} />
         <Route path="/health/:citizenId" element={<AddHealth />} />
-        <Route path="/dashboard/:citizenId" element={<Dashboard />} />
-
+         
+        <Route path="/admin/login" element={<AdminLogin />} />
+         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Routes>
     </BrowserRouter>

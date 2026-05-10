@@ -1,211 +1,502 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getProfile } from "../api/api";
+import {
+  LayoutDashboard,
+  Users,
+  Bell,
+  ShieldAlert,
+  Activity,
+  HeartPulse,
+  Menu,
+} from "lucide-react";
 
-export default function Dashboard() {
-  const { citizenId } = useParams();
-  const navigate = useNavigate();
+import API from "../api/api";
 
-  const [data, setData] = useState(null);
+export default function AdminDashboard() {
+  const [summary, setSummary] = useState(null);
+  const [verification, setVerification] = useState(null);
+  const [health, setHealth] = useState(null);
+
   const [loading, setLoading] = useState(true);
 
+  const [activeMenu, setActiveMenu] =
+    useState("dashboard");
+
+  // ===============================
+  // 📊 FETCH DASHBOARD
+  // ===============================
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem(
+        "adminAccessToken"
+      );
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      const [
+        summaryRes,
+        verificationRes,
+        healthRes,
+      ] = await Promise.all([
+        API.get("/dashboard/summary", {
+          headers,
+        }),
+        API.get("/dashboard/verification", {
+          headers,
+        }),
+        API.get("/dashboard/health", {
+          headers,
+        }),
+      ]);
+
+      setSummary(summaryRes.data.data);
+      setVerification(
+        verificationRes.data.data
+      );
+      setHealth(healthRes.data.data);
+
+    } catch (err) {
+      console.error(err);
+
+      alert(
+        err?.response?.data?.message ||
+          "โหลด Dashboard ไม่สำเร็จ"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ===============================
+  // 🚀 INIT
+  // ===============================
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await getProfile(citizenId);
-        setData(res.data.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchDashboard();
+  }, []);
 
-    fetch();
-  }, [citizenId]);
+  // ===============================
+  // LOADING
+  // ===============================
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-14 h-14 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
 
-  if (loading) return <Center>กำลังโหลด...</Center>;
-  if (!data) return <Center>ไม่พบข้อมูล</Center>;
-
-  const { user, health } = data;
-
-  const sort = (arr = []) =>
-    [...arr].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-
-  const bp = sort(health.blood_pressure);
-  const sugar = sort(health.sugar);
-  const chol = sort(health.cholesterol);
-
-  return (
-    <div className="container-mobile space-y-4">
-
-      {/* 👤 USER */}
-      <Card>
-        <h2 className="text-lg font-bold">
-          {user.firstName} {user.lastName}
-        </h2>
-        <p className="text-gray-500 text-sm">{user.phone}</p>
-      </Card>
-
-      {/* ❤️ BLOOD PRESSURE */}
-      <Section title="ความดันโลหิต">
-        {bp.length ? (
-          <>
-            <Highlight
-              color={getBPColor(bp[0].value.systolic)}
-              value={`${bp[0].value.systolic}/${bp[0].value.diastolic}`}
-              sub={`Pulse ${bp[0].value.pulse}`}
-              time={bp[0].createdAt}
-            />
-            <MiniList
-              list={bp}
-              render={(x) =>
-                `${x.value.systolic}/${x.value.diastolic}`
-              }
-            />
-          </>
-        ) : (
-          <Empty />
-        )}
-      </Section>
-
-      {/* 🍬 SUGAR */}
-      <Section title="น้ำตาล">
-        {sugar.length ? (
-          <>
-            <Highlight
-              color={getSugarColor(sugar[0].value.hba1c)}
-              value={`FBS ${sugar[0].value.fbs}`}
-              sub={`HbA1C ${sugar[0].value.hba1c}`}
-              time={sugar[0].createdAt}
-            />
-            <MiniList
-              list={sugar}
-              render={(x) =>
-                `FBS ${x.value.fbs} | HbA1C ${x.value.hba1c}`
-              }
-            />
-          </>
-        ) : (
-          <Empty />
-        )}
-      </Section>
-
-      {/* 🧬 CHOLESTEROL */}
-      <Section title="ไขมัน">
-        {chol.length ? (
-          <>
-            <Highlight
-              color="text-blue-600"
-              value={`Total ${chol[0].value.total}`}
-              sub={`LDL ${chol[0].value.ldl}`}
-              time={chol[0].createdAt}
-            />
-            <MiniList
-              list={chol}
-              render={(x) =>
-                `Total ${x.value.total} | LDL ${x.value.ldl}`
-              }
-            />
-          </>
-        ) : (
-          <Empty />
-        )}
-      </Section>
-
-      {/* 🔁 BUTTON */}
-      <button
-        onClick={() => navigate(`/health/${citizenId}`)}
-        className="btn-primary w-full"
-      >
-        เพิ่มข้อมูลสุขภาพ
-      </button>
-
-    </div>
-  );
-}
-
-//
-// 🔹 COMPONENTS
-//
-
-function Section({ title, children }) {
-  return (
-    <div className="space-y-2">
-      <h3 className="text-md font-bold text-gray-700">{title}</h3>
-      {children}
-    </div>
-  );
-}
-
-function Card({ children }) {
-  return (
-    <div className="bg-white rounded-xl shadow p-4">
-      {children}
-    </div>
-  );
-}
-
-function Highlight({ value, sub, time, color }) {
-  return (
-    <div className="bg-white rounded-xl shadow p-4 space-y-1">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-sm text-gray-500">{sub}</p>
-      <Time time={time} />
-    </div>
-  );
-}
-
-function MiniList({ list = [], render }) {
-  return (
-    <div className="bg-white rounded-xl shadow p-3 space-y-1">
-      {list.slice(0, 5).map((item) => (
-        <div key={item._id} className="text-sm text-gray-600">
-          {render(item)}
+          <p className="mt-4 text-gray-600">
+            กำลังโหลด Dashboard...
+          </p>
         </div>
-      ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex">
+
+      {/* ===============================
+          SIDEBAR
+      =============================== */}
+      <aside className="w-72 bg-white shadow-xl hidden md:flex flex-col">
+
+        {/* LOGO */}
+        <div className="h-24 border-b flex items-center px-6">
+
+          <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl">
+            S
+          </div>
+
+          <div className="ml-4">
+            <h1 className="font-bold text-xl">
+              Save Stroke
+            </h1>
+
+            <p className="text-sm text-gray-500">
+              Admin Panel
+            </p>
+          </div>
+
+        </div>
+
+        {/* MENU */}
+        <div className="flex-1 p-4 space-y-2">
+
+          {/* DASHBOARD */}
+          <button
+            onClick={() =>
+              setActiveMenu("dashboard")
+            }
+            className={`w-full flex items-center px-4 py-4 rounded-2xl transition-all ${
+              activeMenu === "dashboard"
+                ? "bg-green-600 text-white"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            <LayoutDashboard size={20} />
+
+            <span className="ml-3 font-medium">
+              Dashboard
+            </span>
+          </button>
+
+          {/* MEMBERS */}
+          <button
+            onClick={() =>
+              setActiveMenu("members")
+            }
+            className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all ${
+              activeMenu === "members"
+                ? "bg-green-600 text-white"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            <div className="flex items-center">
+              <Users size={20} />
+
+              <span className="ml-3 font-medium">
+                Members
+              </span>
+            </div>
+
+            {/* NOTI */}
+            {verification?.pending > 0 && (
+              <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                {verification.pending}
+              </div>
+            )}
+          </button>
+
+          {/* VERIFICATION */}
+          <button
+            onClick={() =>
+              setActiveMenu("verification")
+            }
+            className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all ${
+              activeMenu === "verification"
+                ? "bg-green-600 text-white"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            <div className="flex items-center">
+              <ShieldAlert size={20} />
+
+              <span className="ml-3 font-medium">
+                Verification Pending
+              </span>
+            </div>
+
+            {verification?.pending > 0 && (
+              <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                {verification.pending}
+              </div>
+            )}
+          </button>
+
+        </div>
+
+      </aside>
+
+      {/* ===============================
+          MAIN
+      =============================== */}
+      <main className="flex-1 p-6 overflow-auto">
+
+        {/* MOBILE TOPBAR */}
+        <div className="md:hidden flex items-center justify-between mb-6">
+
+          <button className="w-12 h-12 bg-white rounded-2xl shadow flex items-center justify-center">
+            <Menu />
+          </button>
+
+          <h1 className="text-xl font-bold">
+            Save Stroke
+          </h1>
+
+          <button className="w-12 h-12 bg-white rounded-2xl shadow flex items-center justify-center relative">
+            <Bell />
+
+            {verification?.pending > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full">
+                {verification.pending}
+              </span>
+            )}
+          </button>
+
+        </div>
+
+        {/* PAGE TITLE */}
+        <div className="mb-8">
+
+          <h1 className="text-3xl font-bold text-gray-800">
+            Dashboard
+          </h1>
+
+          <p className="text-gray-500 mt-2">
+            ภาพรวมระบบ Save Stroke
+          </p>
+
+        </div>
+
+        {/* ===============================
+            SUMMARY CARD
+        =============================== */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+
+          {/* USERS */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+                <p className="text-gray-500">
+                  Total Members
+                </p>
+
+                <h2 className="text-4xl font-bold mt-2">
+                  {summary?.totalUsers || 0}
+                </h2>
+              </div>
+
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                <Users className="text-blue-600" />
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* RECORDS */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+                <p className="text-gray-500">
+                  Health Records
+                </p>
+
+                <h2 className="text-4xl font-bold mt-2">
+                  {summary?.totalHealthRecords ||
+                    0}
+                </h2>
+              </div>
+
+              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
+                <Activity className="text-green-600" />
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* HIGH RISK */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+                <p className="text-gray-500">
+                  High Risk
+                </p>
+
+                <h2 className="text-4xl font-bold mt-2 text-red-500">
+                  {summary?.highRiskUsers || 0}
+                </h2>
+              </div>
+
+              <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
+                <HeartPulse className="text-red-600" />
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* VERIFICATION */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+                <p className="text-gray-500">
+                  Verification Pending
+                </p>
+
+                <h2 className="text-4xl font-bold mt-2 text-orange-500">
+                  {verification?.pending || 0}
+                </h2>
+              </div>
+
+              <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
+                <ShieldAlert className="text-orange-600" />
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ===============================
+            HEALTH SUMMARY
+        =============================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+
+          {/* BLOOD PRESSURE */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <h3 className="font-bold text-lg">
+              Blood Pressure
+            </h3>
+
+            <p className="text-5xl font-bold mt-6 text-blue-600">
+              {health?.blood_pressure || 0}
+            </p>
+
+            <p className="text-gray-500 mt-2">
+              records
+            </p>
+
+          </div>
+
+          {/* SUGAR */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <h3 className="font-bold text-lg">
+              Sugar
+            </h3>
+
+            <p className="text-5xl font-bold mt-6 text-green-600">
+              {health?.sugar || 0}
+            </p>
+
+            <p className="text-gray-500 mt-2">
+              records
+            </p>
+
+          </div>
+
+          {/* CHOLESTEROL */}
+          <div className="bg-white rounded-3xl p-6 shadow">
+
+            <h3 className="font-bold text-lg">
+              Cholesterol
+            </h3>
+
+            <p className="text-5xl font-bold mt-6 text-red-600">
+              {health?.cholesterol || 0}
+            </p>
+
+            <p className="text-gray-500 mt-2">
+              records
+            </p>
+
+          </div>
+
+        </div>
+
+        {/* ===============================
+            LATEST RECORDS
+        =============================== */}
+        <div className="bg-white rounded-3xl shadow overflow-hidden">
+
+          <div className="p-6 border-b">
+
+            <h2 className="text-2xl font-bold">
+              Latest Health Records
+            </h2>
+
+            <p className="text-gray-500 mt-1">
+              รายการล่าสุดในระบบ
+            </p>
+
+          </div>
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full">
+
+              <thead className="bg-gray-50">
+
+                <tr>
+
+                  <th className="text-left p-4">
+                    Citizen ID
+                  </th>
+
+                  <th className="text-left p-4">
+                    Type
+                  </th>
+
+                  <th className="text-left p-4">
+                    BMI
+                  </th>
+
+                  <th className="text-left p-4">
+                    Risk
+                  </th>
+
+                  <th className="text-left p-4">
+                    Date
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {health?.latestRecords?.map(
+                  (item) => (
+                    <tr
+                      key={item._id}
+                      className="border-t hover:bg-gray-50"
+                    >
+
+                      <td className="p-4 font-medium">
+                        {item.citizenId}
+                      </td>
+
+                      <td className="p-4 capitalize">
+                        {item.type}
+                      </td>
+
+                      <td className="p-4">
+                        {item.bmi || "-"}
+                      </td>
+
+                      <td className="p-4">
+
+                        <span className="px-3 py-1 rounded-full text-sm bg-red-100 text-red-600">
+                          {item?.cvdRisk?.label ||
+                            "Normal"}
+                        </span>
+
+                      </td>
+
+                      <td className="p-4 text-gray-500">
+                        {new Date(
+                          item.createdAt
+                        ).toLocaleString()}
+                      </td>
+
+                    </tr>
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </main>
+
     </div>
   );
-}
-
-function Time({ time }) {
-  return (
-    <p className="text-xs text-gray-400">
-      {new Date(time).toLocaleString("th-TH")}
-    </p>
-  );
-}
-
-function Empty() {
-  return (
-    <div className="text-center text-gray-400 py-2">
-      ยังไม่มีข้อมูล
-    </div>
-  );
-}
-
-function Center({ children }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      {children}
-    </div>
-  );
-}
-
-//
-// 🔥 RISK COLOR
-//
-
-function getBPColor(sys) {
-  if (sys >= 140) return "text-red-500";
-  if (sys >= 120) return "text-yellow-500";
-  return "text-green-500";
-}
-
-function getSugarColor(hba1c) {
-  if (hba1c >= 6.5) return "text-red-500";
-  if (hba1c >= 5.7) return "text-yellow-500";
-  return "text-green-500";
 }
