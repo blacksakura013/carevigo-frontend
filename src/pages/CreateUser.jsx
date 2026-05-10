@@ -1,340 +1,946 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import DatePicker from "react-datepicker";
-import { parse, format } from "date-fns";
+
+import Swal from "sweetalert2";
+
 import "react-datepicker/dist/react-datepicker.css";
 
-import { createUser, searchUser } from "../api/api";
+import {
+  createUser,
+  searchUser,
+} from "../api/api";
+
+import th from "date-fns/locale/th";
 
 export default function CreateUser() {
-  const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    citizenId: "",
-    firstName: "",
-    lastName: "",
-    gender: "male",
-    birthDate: "",
+  const navigate =
+    useNavigate();
 
-    phone: "",
-    email: "",
-    lineId: "",
+  // ===============================
+  // STATE
+  // ===============================
+  const [form, setForm] =
+    useState({
+      citizenId: "",
 
-    emergencyContactName: "",
-    emergencyContactPhone: "",
+      firstName: "",
+      lastName: "",
 
-    province: "",
-    district: "",
-    subdistrict: "",
-    address: "",
+      gender: "male",
 
-    weight: "",
-    height: "",
+      birthDate: "",
 
-    education: "primary",
-    maritalStatus: "single",
-    occupation: "",
-    economicStatus: "enough",
+      phone: "",
+      email: "",
+      lineId: "",
 
-    chronicDiseases: [],
-  });
+      emergencyContactName:
+        "",
 
-  const [isSearched, setIsSearched] = useState(false);
-  const [isExisting, setIsExisting] = useState(false);
-  const [loading, setLoading] = useState(false);
+      emergencyContactPhone:
+        "",
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+      province: "",
+      district: "",
+      subdistrict: "",
+      address: "",
 
-  const parseDate = (d) =>
-    d ? parse(d, "yyyyMMdd", new Date()) : null;
+      weight: "",
+      height: "",
 
-  const formatDate = (d) =>
-    d ? format(d, "yyyyMMdd") : "";
+      education:
+        "primary",
 
-  // 🔍 SEARCH USER
-  const handleSearch = async () => {
-    if (form.citizenId.length !== 13) {
-      alert("เลขบัตรไม่ถูกต้อง");
-      return;
-    }
+      maritalStatus:
+        "single",
 
-    setLoading(true);
+      occupation: "",
 
-    try {
-      const res = await searchUser(form.citizenId);
-      setIsSearched(true);
+      economicStatus:
+        "enough",
 
-      if (res.data?.data) {
-        const u = res.data.data;
+      chronicDiseases: [],
+    });
 
-        setForm({
-          ...form,
-          ...u,
-          chronicDiseases: u.chronicDiseases || [],
-        });
+  const [
+    isSearched,
+    setIsSearched,
+  ] = useState(false);
 
-        setIsExisting(true);
-        alert("✅ พบข้อมูลแล้ว");
-      } else {
-        setIsExisting(false);
-        alert("❗ ไม่พบข้อมูล คุณสามารถสร้างข้อมูลใหม่ได้");
-      }
-    } catch (err) {
-      alert("เกิดข้อผิดพลาดในการค้นหา");
-    }
+  const [
+    isExisting,
+    setIsExisting,
+  ] = useState(false);
 
-    setLoading(false);
+  const [loading, setLoading] =
+    useState(false);
+
+  // ===============================
+  // INPUT CHANGE
+  // ===============================
+  const handleChange = (
+    e
+  ) =>
+    setForm({
+      ...form,
+      [e.target.name]:
+        e.target.value,
+    });
+
+  // ===============================
+  // DATE HELPERS
+  // ===============================
+  const parseDate = (
+    value
+  ) => {
+
+    if (!value)
+      return null;
+
+    const year = Number(
+      value.substring(0, 4)
+    );
+
+    const month =
+      Number(
+        value.substring(4, 6)
+      ) - 1;
+
+    const day = Number(
+      value.substring(6, 8)
+    );
+
+    return new Date(
+      year,
+      month,
+      day
+    );
   };
 
-  // 📦 SUBMIT
-  const handleSubmit = async () => {
-    if (!form.firstName) return alert("กรุณากรอกชื่อ");
-    if (!form.province) return alert("กรุณากรอกจังหวัด");
+  const formatDateToServer =
+    (date) => {
 
-    const payload = {
-      ...form,
-      weight: Number(form.weight),
-      height: Number(form.height),
-      chronicDiseases: form.chronicDiseases,
+      if (!date)
+        return "";
+
+      const christianYear =
+        date.getFullYear();
+
+      const month = String(
+        date.getMonth() + 1
+      ).padStart(2, "0");
+
+      const day = String(
+        date.getDate()
+      ).padStart(2, "0");
+
+      return `${christianYear}${month}${day}`;
     };
 
-    await createUser(payload);
-    alert("✅ สร้างผู้ใช้สำเร็จ");
-  };
+  // ===============================
+  // SEARCH USER
+  // ===============================
+  const handleSearch =
+    async () => {
 
-  const disabled = !isSearched || isExisting;
+      if (
+        form.citizenId
+          .length !== 13
+      ) {
+
+        Swal.fire({
+          icon: "warning",
+          title:
+            "เลขบัตรประชาชนไม่ถูกต้อง",
+        });
+
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+
+        const res =
+          await searchUser(
+            form.citizenId
+          );
+
+        setIsSearched(true);
+
+        if (
+          res.data?.data
+        ) {
+
+          const user =
+            res.data.data;
+
+          setForm({
+            ...form,
+            ...user,
+
+            chronicDiseases:
+              user.chronicDiseases ||
+              [],
+          });
+
+          setIsExisting(
+            true
+          );
+
+          Swal.fire({
+            icon: "success",
+            title:
+              "พบข้อมูลแล้ว",
+            text:
+              "สามารถไปขั้นตอนถัดไปได้",
+          });
+
+        } else {
+
+          setIsExisting(
+            false
+          );
+
+          Swal.fire({
+            icon: "info",
+            title:
+              "ไม่พบข้อมูล",
+            text:
+              "สามารถสร้างผู้ใช้ใหม่ได้",
+          });
+        }
+
+      } catch (err) {
+
+        Swal.fire({
+          icon: "error",
+          title:
+            "ค้นหาไม่สำเร็จ",
+          text:
+            "เกิดข้อผิดพลาด",
+        });
+      }
+
+      setLoading(false);
+    };
+
+  // ===============================
+  // SUBMIT
+  // ===============================
+  const handleSubmit =
+    async () => {
+
+      if (
+        !form.firstName
+      ) {
+
+        Swal.fire({
+          icon: "warning",
+          title:
+            "กรุณากรอกชื่อ",
+        });
+
+        return;
+      }
+
+      if (
+        !form.province
+      ) {
+
+        Swal.fire({
+          icon: "warning",
+          title:
+            "กรุณากรอกจังหวัด",
+        });
+
+        return;
+      }
+
+      try {
+
+        Swal.fire({
+          title:
+            "กำลังบันทึกข้อมูล",
+          allowOutsideClick:
+            false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        const payload = {
+          ...form,
+
+          weight: Number(
+            form.weight
+          ),
+
+          height: Number(
+            form.height
+          ),
+
+          chronicDiseases:
+            form.chronicDiseases,
+        };
+
+        await createUser(
+          payload
+        );
+
+        Swal.fire({
+          icon: "success",
+          title:
+            "สร้างผู้ใช้สำเร็จ",
+        });
+
+      } catch (err) {
+
+        Swal.fire({
+          icon: "error",
+          title:
+            "บันทึกไม่สำเร็จ",
+          text:
+            err?.response
+              ?.data
+              ?.message ||
+            "เกิดข้อผิดพลาด",
+        });
+      }
+    };
+
+  const disabled =
+    !isSearched ||
+    isExisting;
 
   return (
-    <div className="container-mobile space-y-6">
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
 
-      <h1 className="text-center text-green-600 text-xl font-bold">
-        สมัครผู้ใช้
-      </h1>
+      <div className="max-w-3xl mx-auto space-y-6">
 
-      {/* 🔍 SEARCH */}
-      <Card title="ค้นหา">
-        <div className="flex gap-2">
-          <input
-            className="input"
-            name="citizenId"
-            value={form.citizenId}
-            onChange={handleChange}
-          />
-          <button onClick={handleSearch} className="btn bg-blue-500 text-white">
-            {loading ? "..." : "ค้นหา"}
-          </button>
+        {/* HEADER */}
+        <div className="text-center">
+
+          <h1 className="text-3xl font-bold text-green-600">
+            สมัครผู้ใช้
+          </h1>
+
+          <p className="text-gray-500 mt-2">
+            Save Stroke
+          </p>
+
         </div>
-      </Card>
 
-      {/* STATUS */}
-      {isSearched && !isExisting && (
-        <div className="bg-yellow-100 text-yellow-800 p-2 rounded text-sm">
-          ❗ ไม่พบข้อมูล คุณสามารถสร้างข้อมูลใหม่ได้
-        </div>
-      )}
+        {/* SEARCH */}
+        <Card title="ค้นหาผู้ใช้">
 
-      {isExisting && (
-        <div className="bg-green-100 text-green-800 p-2 rounded text-sm">
-          ✅ พบข้อมูลแล้ว สามารถไปขั้นตอนถัดไปได้
-        </div>
-      )}
+          <div className="flex gap-2">
 
-      {/* 👤 BASIC */}
-      <Card title="ข้อมูลส่วนตัว">
-        <Input label="ชื่อ" name="firstName" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="นามสกุล" name="lastName" form={form} onChange={handleChange} disabled={disabled}/>
+            <input
+              className="input"
+              name="citizenId"
+              placeholder="เลขบัตรประชาชน"
 
-        <Select
-          label="เพศ"
-          name="gender"
-          form={form}
-          onChange={handleChange}
-          disabled={disabled}
-          options={{ male: "ชาย", female: "หญิง" }}
-        />
+              value={
+                form.citizenId
+              }
 
-        <Field label="วันเกิด">
-          <DatePicker
-            selected={parseDate(form.birthDate)}
-            onChange={(d) =>
-              setForm({ ...form, birthDate: formatDate(d) })
-            }
-            className="input"
-            disabled={disabled}
-          />
-        </Field>
-      </Card>
+              onChange={
+                handleChange
+              }
+            />
 
-      {/* 📞 CONTACT */}
-      <Card title="ติดต่อ">
-        <Input label="เบอร์" name="phone" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="Email" name="email" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="LINE" name="lineId" form={form} onChange={handleChange} disabled={disabled}/>
-      </Card>
+            <button
+              onClick={
+                handleSearch
+              }
+              className="bg-blue-500 hover:bg-blue-600 text-white px-5 rounded-2xl"
+            >
 
-      {/* 📍 ADDRESS */}
-      <Card title="ที่อยู่">
-        <Input label="จังหวัด" name="province" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="อำเภอ" name="district" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="ตำบล" name="subdistrict" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="ที่อยู่" name="address" form={form} onChange={handleChange} disabled={disabled}/>
-      </Card>
+              {loading
+                ? "..."
+                : "ค้นหา"}
 
-      {/* ⚖️ HEALTH */}
-      <Card title="สุขภาพ">
-        <Input label="น้ำหนัก" name="weight" form={form} onChange={handleChange} disabled={disabled}/>
-        <Input label="ส่วนสูง" name="height" form={form} onChange={handleChange} disabled={disabled}/>
+            </button>
 
-        <Field label="โรคประจำตัว">
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              "ไม่มีโรค",
-              "NCDs",
-              "โรคติดเชื้อ",
-              "โรคความดัน",
-              "เบาหวาน",
-              "ไขมัน",
-              "หัวใจ"
-            ].map((d) => (
-              <label key={d}>
-                <input
-                  type="checkbox"
-                  checked={form.chronicDiseases.includes(d)}
-                  disabled={disabled}
-                  onChange={(e) => {
-                    const arr = form.chronicDiseases;
-                    if (e.target.checked) {
-                      setForm({ ...form, chronicDiseases: [...arr, d] });
-                    } else {
-                      setForm({
-                        ...form,
-                        chronicDiseases: arr.filter(x => x !== d),
-                      });
-                    }
-                  }}
-                />
-                {d}
-              </label>
-            ))}
           </div>
-        </Field>
-      </Card>
 
-      {/* 🎓 INFO */}
-      <Card title="ข้อมูลเพิ่มเติม">
-        <Select
-          label="การศึกษา"
-          name="education"
-          form={form}
-          onChange={handleChange}
-          disabled={disabled}
-          options={{
-            none: "ไม่ได้เรียน",
-            primary: "ประถมศึกษา",
-            secondary: "มัธยมต้น",
-            highschool: "มัธยมปลาย / ปวช.",
-            diploma: "ปวส. / อนุปริญญา",
-            bachelor: "ปริญญาตรีขึ้นไป"
+        </Card>
+
+        {/* BASIC */}
+        <Card title="ข้อมูลส่วนตัว">
+
+          <Input
+            label="ชื่อ"
+            name="firstName"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="นามสกุล"
+            name="lastName"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Select
+            label="เพศ"
+            name="gender"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+            options={{
+              male: "ชาย",
+              female: "หญิง",
+            }}
+          />
+
+          {/* DATE */}
+          <Field label="วันเกิด">
+
+            <DatePicker
+              selected={parseDate(
+                form.birthDate
+              )}
+
+              onChange={(
+                date
+              ) =>
+                setForm({
+                  ...form,
+
+                  birthDate:
+                    formatDateToServer(
+                      date
+                    ),
+                })
+              }
+
+              locale={th}
+
+              dateFormat="dd/MM/yyyy"
+
+              showMonthDropdown
+              showYearDropdown
+
+              dropdownMode="select"
+
+              yearDropdownItemNumber={
+                100
+              }
+
+              scrollableYearDropdown
+
+              maxDate={
+                new Date()
+              }
+
+              placeholderText="เลือกวันเกิด"
+
+              disabled={
+                disabled
+              }
+
+              className="
+                w-full
+                rounded-2xl
+                border
+                border-gray-200
+                px-4
+                py-3
+                focus:outline-none
+                focus:ring-2
+                focus:ring-green-500
+              "
+
+              renderCustomHeader={({
+                date,
+                changeYear,
+                changeMonth,
+                decreaseMonth,
+                increaseMonth,
+              }) => {
+
+                const years =
+                  [];
+
+                const currentYear =
+                  new Date().getFullYear();
+
+                for (
+                  let y =
+                    currentYear;
+                  y >= 1900;
+                  y--
+                ) {
+                  years.push(
+                    y
+                  );
+                }
+
+                const months =
+                  [
+                    "มกราคม",
+                    "กุมภาพันธ์",
+                    "มีนาคม",
+                    "เมษายน",
+                    "พฤษภาคม",
+                    "มิถุนายน",
+                    "กรกฎาคม",
+                    "สิงหาคม",
+                    "กันยายน",
+                    "ตุลาคม",
+                    "พฤศจิกายน",
+                    "ธันวาคม",
+                  ];
+
+                return (
+                  <div className="flex items-center justify-between px-2 py-2 gap-2">
+
+                    <button
+                      onClick={
+                        decreaseMonth
+                      }
+                      type="button"
+                      className="px-3 py-1 rounded-lg bg-gray-100"
+                    >
+                      {"<"}
+                    </button>
+
+                    <div className="flex gap-2">
+
+                      {/* MONTH */}
+                      <select
+                        value={date.getMonth()}
+                        onChange={(
+                          e
+                        ) =>
+                          changeMonth(
+                            Number(
+                              e.target.value
+                            )
+                          )
+                        }
+                        className="border rounded-lg px-2 py-1"
+                      >
+
+                        {months.map(
+                          (
+                            month,
+                            index
+                          ) => (
+                            <option
+                              key={
+                                month
+                              }
+                              value={
+                                index
+                              }
+                            >
+                              {
+                                month
+                              }
+                            </option>
+                          )
+                        )}
+
+                      </select>
+
+                      {/* YEAR */}
+                      <select
+                        value={date.getFullYear()}
+                        onChange={(
+                          e
+                        ) =>
+                          changeYear(
+                            Number(
+                              e.target.value
+                            )
+                          )
+                        }
+                        className="border rounded-lg px-2 py-1"
+                      >
+
+                        {years.map(
+                          (
+                            year
+                          ) => (
+                            <option
+                              key={
+                                year
+                              }
+                              value={
+                                year
+                              }
+                            >
+                              {year +
+                                543}
+                            </option>
+                          )
+                        )}
+
+                      </select>
+
+                    </div>
+
+                    <button
+                      onClick={
+                        increaseMonth
+                      }
+                      type="button"
+                      className="px-3 py-1 rounded-lg bg-gray-100"
+                    >
+                      {">"}
+                    </button>
+
+                  </div>
+                );
+              }}
+            />
+
+            {/* SHOW DATE */}
+            {form.birthDate && (
+              <div className="text-sm text-gray-500 mt-2">
+
+                วันเกิด:
+                {" "}
+
+                {(() => {
+
+                  const date =
+                    parseDate(
+                      form.birthDate
+                    );
+
+                  return `${date.getDate()}/${
+                    date.getMonth() +
+                    1
+                  }/${
+                    date.getFullYear() +
+                    543
+                  }`;
+
+                })()}
+
+              </div>
+            )}
+
+          </Field>
+
+        </Card>
+
+        {/* CONTACT */}
+        <Card title="ข้อมูลติดต่อ">
+
+          <Input
+            label="เบอร์โทร"
+            name="phone"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="Email"
+            name="email"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="LINE ID"
+            name="lineId"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+        </Card>
+
+        {/* ADDRESS */}
+        <Card title="ที่อยู่">
+
+          <Input
+            label="จังหวัด"
+            name="province"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="อำเภอ"
+            name="district"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="ตำบล"
+            name="subdistrict"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="ที่อยู่"
+            name="address"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+        </Card>
+
+        {/* HEALTH */}
+        <Card title="สุขภาพ">
+
+          <Input
+            label="น้ำหนัก"
+            name="weight"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+          <Input
+            label="ส่วนสูง"
+            name="height"
+            form={form}
+            onChange={
+              handleChange
+            }
+            disabled={
+              disabled
+            }
+          />
+
+        </Card>
+
+        {/* BUTTON */}
+        <button
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-semibold transition-all"
+          onClick={async () => {
+
+            if (
+              !isSearched
+            ) {
+
+              Swal.fire({
+                icon:
+                  "warning",
+                title:
+                  "กรุณาค้นหาก่อน",
+              });
+
+              return;
+            }
+
+            if (
+              !isExisting
+            ) {
+              await handleSubmit();
+            }
+
+            navigate(
+              `/health/${form.citizenId}`
+            );
           }}
-        />
+        >
+          {isExisting
+            ? "ต่อไป"
+            : "สร้างผู้ใช้"}
+        </button>
 
-        <Select
-          label="สถานภาพ"
-          name="maritalStatus"
-          form={form}
-          onChange={handleChange}
-          disabled={disabled}
-          options={{
-            single: "โสด",
-            married: "สมรสอยู่ร่วมกัน",
-            separated: "สมรสแยกกันอยู่",
-            widowed: "หม้าย",
-            divorced: "หย่าร้าง"
-          }}
-        />
-
-        <Select
-          label="เศรษฐกิจ"
-          name="economicStatus"
-          form={form}
-          onChange={handleChange}
-          disabled={disabled}
-          options={{
-            enough: "พอใช้",
-            notEnough: "ไม่พอใช้"
-          }}
-        />
-
-        <Input label="อาชีพ" name="occupation" form={form} onChange={handleChange} disabled={disabled}/>
-      </Card>
-
-      {/* 🔥 BUTTON */}
-      <button
-        className="btn-primary w-full"
-        onClick={async () => {
-          if (!isSearched) return alert("กรุณาค้นหาก่อน");
-
-          if (!isExisting) await handleSubmit();
-
-          navigate(`/health/${form.citizenId}`);
-        }}
-      >
-        {isExisting ? "ต่อไป" : "สร้างผู้ใช้"}
-      </button>
+      </div>
 
     </div>
   );
 }
 
-/* ---------- COMPONENT ---------- */
+/* ===============================
+   COMPONENTS
+=============================== */
 
-function Card({ title, children }) {
+function Card({
+  title,
+  children,
+}) {
   return (
-    <div className="bg-white p-4 rounded-xl shadow space-y-3">
-      <h2 className="font-semibold text-gray-700">{title}</h2>
+    <div className="bg-white p-6 rounded-3xl shadow-sm space-y-4">
+
+      <h2 className="font-semibold text-lg text-gray-700">
+        {title}
+      </h2>
+
       {children}
+
     </div>
   );
 }
 
-function Field({ label, children }) {
+function Field({
+  label,
+  children,
+}) {
   return (
-    <div>
-      <label className="text-sm text-gray-500">{label}</label>
+    <div className="space-y-2">
+
+      <label className="text-sm text-gray-500">
+        {label}
+      </label>
+
       {children}
+
     </div>
   );
 }
 
-function Input({ label, name, form, onChange, disabled }) {
+function Input({
+  label,
+  name,
+  form,
+  onChange,
+  disabled,
+}) {
   return (
     <Field label={label}>
+
       <input
-        className="input"
+        className="
+          w-full
+          rounded-2xl
+          border
+          border-gray-200
+          px-4
+          py-3
+          focus:outline-none
+          focus:ring-2
+          focus:ring-green-500
+        "
+
         name={name}
+
         value={form[name]}
-        onChange={onChange}
-        disabled={disabled}
+
+        onChange={
+          onChange
+        }
+
+        disabled={
+          disabled
+        }
       />
+
     </Field>
   );
 }
 
-function Select({ label, name, form, onChange, options, disabled }) {
+function Select({
+  label,
+  name,
+  form,
+  onChange,
+  options,
+  disabled,
+}) {
   return (
     <Field label={label}>
+
       <select
-        className="input"
+        className="
+          w-full
+          rounded-2xl
+          border
+          border-gray-200
+          px-4
+          py-3
+          focus:outline-none
+          focus:ring-2
+          focus:ring-green-500
+        "
+
         name={name}
+
         value={form[name]}
-        onChange={onChange}
-        disabled={disabled}
+
+        onChange={
+          onChange
+        }
+
+        disabled={
+          disabled
+        }
       >
-        {Object.entries(options).map(([v, t]) => (
-          <option key={v} value={v}>{t}</option>
-        ))}
+
+        {Object.entries(
+          options
+        ).map(
+          ([v, t]) => (
+            <option
+              key={v}
+              value={v}
+            >
+              {t}
+            </option>
+          )
+        )}
+
       </select>
+
     </Field>
   );
 }

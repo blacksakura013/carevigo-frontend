@@ -17,7 +17,13 @@ import {
   ChevronUp,
   Mars,
   Venus,
-  ArrowUpDown,
+  AlertTriangle,
+  CheckCircle2,
+  ShieldAlert,
+  Clock3,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 
 import {
@@ -58,6 +64,9 @@ export default function AdminDashboard() {
   const [selectedType, setSelectedType] =
     useState("all");
 
+  const [selectedStatus, setSelectedStatus] =
+    useState("all");
+
   const [page, setPage] =
     useState(1);
 
@@ -83,6 +92,7 @@ export default function AdminDashboard() {
         append = false,
         silent = false
       ) => {
+
         try {
 
           if (
@@ -113,9 +123,6 @@ export default function AdminDashboard() {
             setRefreshing(true);
           }
 
-          // ===============================
-          // API
-          // ===============================
           const [
             verificationRes,
             healthRes,
@@ -128,17 +135,11 @@ export default function AdminDashboard() {
             ),
           ]);
 
-          // ===============================
-          // VERIFICATION
-          // ===============================
           setVerification(
             verificationRes?.data
               ?.data || {}
           );
 
-          // ===============================
-          // HEALTH
-          // ===============================
           const responseData =
             healthRes?.data || {};
 
@@ -295,7 +296,357 @@ export default function AdminDashboard() {
     };
 
   // ===============================
-  // FILTER + SEARCH + SORT
+  // ANALYZE HEALTH
+  // ===============================
+  const analyzeHealth =
+    (item) => {
+
+      if (!item) {
+
+        return {
+          status: "No Data",
+
+          color:
+            "bg-gray-100 text-gray-500",
+
+          recommendation:
+            "ไม่มีข้อมูล",
+
+          icon:
+            <Minus size={16} />,
+
+          severity: 0,
+        };
+      }
+
+      // =========================
+      // BLOOD PRESSURE
+      // =========================
+      if (
+        item.type ===
+        "blood_pressure"
+      ) {
+
+        const sys =
+          item?.value
+            ?.systolic;
+
+        const dia =
+          item?.value
+            ?.diastolic;
+
+        if (
+          sys >= 180 ||
+          dia >= 120
+        ) {
+
+          return {
+            status:
+              "Critical",
+
+            color:
+              "bg-red-600 text-white",
+
+            recommendation:
+              "ควรพบแพทย์ทันที",
+
+            icon:
+              <AlertTriangle size={16} />,
+
+            severity: 5,
+          };
+        }
+
+        if (
+          sys >= 140 ||
+          dia >= 90
+        ) {
+
+          return {
+            status:
+              "High Risk",
+
+            color:
+              "bg-red-100 text-red-600",
+
+            recommendation:
+              "ลดเค็ม ออกกำลังกาย และพบแพทย์",
+
+            icon:
+              <TrendingUp size={16} />,
+
+            severity: 4,
+          };
+        }
+
+        if (
+          sys >= 120 ||
+          dia >= 80
+        ) {
+
+          return {
+            status:
+              "Warning",
+
+            color:
+              "bg-yellow-100 text-yellow-700",
+
+            recommendation:
+              "ควรควบคุมอาหาร",
+
+            icon:
+              <ShieldAlert size={16} />,
+
+            severity: 3,
+          };
+        }
+
+        if (
+          sys < 90 ||
+          dia < 60
+        ) {
+
+          return {
+            status: "Low",
+
+            color:
+              "bg-blue-100 text-blue-600",
+
+            recommendation:
+              "พักผ่อนและดื่มน้ำ",
+
+            icon:
+              <TrendingDown size={16} />,
+
+            severity: 2,
+          };
+        }
+
+        return {
+          status:
+            "Normal",
+
+          color:
+            "bg-green-100 text-green-700",
+
+          recommendation:
+            "ค่าความดันปกติ",
+
+          icon:
+            <CheckCircle2 size={16} />,
+
+          severity: 1,
+        };
+      }
+
+      // =========================
+      // SUGAR
+      // =========================
+      if (
+        item.type ===
+        "sugar"
+      ) {
+
+        const fbs =
+          item?.value?.fbs;
+
+        if (fbs >= 200) {
+
+          return {
+            status:
+              "Critical",
+
+            color:
+              "bg-red-600 text-white",
+
+            recommendation:
+              "น้ำตาลสูงอันตราย",
+
+            icon:
+              <AlertTriangle size={16} />,
+
+            severity: 5,
+          };
+        }
+
+        if (fbs >= 126) {
+
+          return {
+            status:
+              "Diabetes Risk",
+
+            color:
+              "bg-red-100 text-red-600",
+
+            recommendation:
+              "เสี่ยงเบาหวาน",
+
+            icon:
+              <TrendingUp size={16} />,
+
+            severity: 4,
+          };
+        }
+
+        if (fbs >= 100) {
+
+          return {
+            status:
+              "Warning",
+
+            color:
+              "bg-yellow-100 text-yellow-700",
+
+            recommendation:
+              "ควรลดหวาน",
+
+            icon:
+              <ShieldAlert size={16} />,
+
+            severity: 3,
+          };
+        }
+
+        if (fbs < 70) {
+
+          return {
+            status:
+              "Low",
+
+            color:
+              "bg-blue-100 text-blue-600",
+
+            recommendation:
+              "ควรรับประทานอาหาร",
+
+            icon:
+              <TrendingDown size={16} />,
+
+            severity: 2,
+          };
+        }
+
+        return {
+          status:
+            "Normal",
+
+          color:
+            "bg-green-100 text-green-700",
+
+          recommendation:
+            "ระดับน้ำตาลปกติ",
+
+          icon:
+            <CheckCircle2 size={16} />,
+
+          severity: 1,
+        };
+      }
+
+      // =========================
+      // CHOLESTEROL
+      // =========================
+      if (
+        item.type ===
+        "cholesterol"
+      ) {
+
+        const total =
+          item?.value
+            ?.total;
+
+        if (total >= 300) {
+
+          return {
+            status:
+              "Critical",
+
+            color:
+              "bg-red-600 text-white",
+
+            recommendation:
+              "ไขมันสูงอันตราย",
+
+            icon:
+              <AlertTriangle size={16} />,
+
+            severity: 5,
+          };
+        }
+
+        if (total >= 240) {
+
+          return {
+            status:
+              "High Risk",
+
+            color:
+              "bg-red-100 text-red-600",
+
+            recommendation:
+              "ควรลดของทอดและออกกำลังกาย",
+
+            icon:
+              <TrendingUp size={16} />,
+
+            severity: 4,
+          };
+        }
+
+        if (total >= 200) {
+
+          return {
+            status:
+              "Warning",
+
+            color:
+              "bg-yellow-100 text-yellow-700",
+
+            recommendation:
+              "เริ่มมีความเสี่ยง",
+
+            icon:
+              <ShieldAlert size={16} />,
+
+            severity: 3,
+          };
+        }
+
+        return {
+          status:
+            "Normal",
+
+          color:
+            "bg-green-100 text-green-700",
+
+          recommendation:
+            "ระดับไขมันปกติ",
+
+          icon:
+            <CheckCircle2 size={16} />,
+
+          severity: 1,
+        };
+      }
+
+      return {
+        status: "-",
+
+        color:
+          "bg-gray-100 text-gray-500",
+
+        recommendation:
+          "-",
+
+        icon:
+          <Minus size={16} />,
+
+        severity: 0,
+      };
+    };
+
+  // ===============================
+  // FILTERED RECORDS
   // ===============================
   const filteredRecords =
     useMemo(() => {
@@ -307,6 +658,11 @@ export default function AdminDashboard() {
             const fullName =
               `${item?.user?.firstName || ""} ${item?.user?.lastName || ""}`;
 
+            const analysis =
+              analyzeHealth(
+                item
+              );
+
             const matchSearch =
               fullName
                 .toLowerCase()
@@ -315,9 +671,8 @@ export default function AdminDashboard() {
                 ) ||
 
               item?.user?.citizenId
-                ?.toLowerCase()
                 ?.includes(
-                  search.toLowerCase()
+                  search
                 ) ||
 
               item?.user?.province
@@ -332,9 +687,16 @@ export default function AdminDashboard() {
               item?.type ===
                 selectedType;
 
+            const matchStatus =
+              selectedStatus ===
+                "all" ||
+              analysis.status ===
+                selectedStatus;
+
             return (
               matchSearch &&
-              matchType
+              matchType &&
+              matchStatus
             );
           }
         ) || [];
@@ -345,6 +707,21 @@ export default function AdminDashboard() {
       records.sort(
         (a, b) => {
 
+          if (
+            sortField ===
+            "severity"
+          ) {
+
+            return (
+              analyzeHealth(
+                b
+              ).severity -
+              analyzeHealth(
+                a
+              ).severity
+            );
+          }
+
           let valueA;
           let valueB;
 
@@ -354,55 +731,34 @@ export default function AdminDashboard() {
 
             case "name":
               valueA =
-                `${a?.user?.firstName || ""} ${a?.user?.lastName || ""}`;
+                `${a?.user?.firstName || ""}`;
 
               valueB =
-                `${b?.user?.firstName || ""} ${b?.user?.lastName || ""}`;
-              break;
-
-            case "gender":
-              valueA =
-                a?.user?.gender ||
-                "";
-
-              valueB =
-                b?.user?.gender ||
-                "";
-              break;
-
-            case "province":
-              valueA =
-                a?.user
-                  ?.province ||
-                "";
-
-              valueB =
-                b?.user
-                  ?.province ||
-                "";
+                `${b?.user?.firstName || ""}`;
               break;
 
             case "createdAt":
               valueA = new Date(
-                a?.createdAt
+                a.createdAt
               );
 
               valueB = new Date(
-                b?.createdAt
+                b.createdAt
               );
               break;
 
             default:
               valueA =
-                a?.createdAt;
+                a.createdAt;
 
               valueB =
-                b?.createdAt;
+                b.createdAt;
           }
 
           if (
             sortOrder === "asc"
           ) {
+
             return valueA >
               valueB
               ? 1
@@ -422,6 +778,7 @@ export default function AdminDashboard() {
       health,
       search,
       selectedType,
+      selectedStatus,
       sortField,
       sortOrder,
     ]);
@@ -535,154 +892,106 @@ export default function AdminDashboard() {
             <div>
 
               <h1 className="text-3xl font-bold text-gray-800">
-                Dashboard
+                Health Dashboard
               </h1>
 
               <p className="text-gray-500 mt-2">
-                Health Monitoring Analytics
+                Real-time health monitoring system
               </p>
 
             </div>
 
-            <button
-              onClick={() =>
-                fetchDashboard(1)
-              }
-              className="mt-4 lg:mt-0 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-medium transition-all flex items-center gap-2"
-            >
+            <div className="flex items-center gap-3 mt-4 lg:mt-0">
 
-              <RefreshCw size={18} />
+              {refreshing && (
+                <div className="flex items-center gap-2 text-green-600 text-sm">
+                  <RefreshCw
+                    size={16}
+                    className="animate-spin"
+                  />
+                  Refreshing...
+                </div>
+              )}
 
-              Refresh
+              <button
+                onClick={() =>
+                  fetchDashboard(
+                    1
+                  )
+                }
+                className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-medium transition-all flex items-center gap-2"
+              >
 
-            </button>
+                <RefreshCw size={18} />
+
+                Refresh
+
+              </button>
+
+            </div>
 
           </div>
 
           {/* SUMMARY */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm">
+            <SummaryCard
+              title="Blood Pressure"
+              value={
+                summary?.blood_pressure ||
+                0
+              }
+              icon={
+                <Heart className="text-red-500" />
+              }
+              bg="bg-red-100"
+            />
 
-              <div className="flex items-center justify-between">
+            <SummaryCard
+              title="Sugar"
+              value={
+                summary?.sugar ||
+                0
+              }
+              icon={
+                <Droplets className="text-blue-500" />
+              }
+              bg="bg-blue-100"
+            />
 
-                <div>
+            <SummaryCard
+              title="Cholesterol"
+              value={
+                summary?.cholesterol ||
+                0
+              }
+              icon={
+                <Activity className="text-yellow-500" />
+              }
+              bg="bg-yellow-100"
+            />
 
-                  <p className="text-gray-500 text-sm">
-                    Blood Pressure
-                  </p>
-
-                  <h2 className="text-4xl font-bold mt-3">
-                    {
-                      summary?.blood_pressure || 0
-                    }
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center">
-
-                  <Heart className="text-red-500" />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-              <div className="flex items-center justify-between">
-
-                <div>
-
-                  <p className="text-gray-500 text-sm">
-                    Sugar
-                  </p>
-
-                  <h2 className="text-4xl font-bold mt-3">
-                    {
-                      summary?.sugar || 0
-                    }
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center">
-
-                  <Droplets className="text-blue-500" />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-              <div className="flex items-center justify-between">
-
-                <div>
-
-                  <p className="text-gray-500 text-sm">
-                    Cholesterol
-                  </p>
-
-                  <h2 className="text-4xl font-bold mt-3">
-                    {
-                      summary?.cholesterol || 0
-                    }
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-2xl bg-yellow-100 flex items-center justify-center">
-
-                  <Activity className="text-yellow-500" />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm">
-
-              <div className="flex items-center justify-between">
-
-                <div>
-
-                  <p className="text-gray-500 text-sm">
-                    Verification
-                  </p>
-
-                  <h2 className="text-4xl font-bold mt-3">
-                    {
-                      verification?.pending || 0
-                    }
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center">
-
-                  <Activity className="text-purple-500" />
-
-                </div>
-
-              </div>
-
-            </div>
+            <SummaryCard
+              title="Verification"
+              value={
+                verification?.pending ||
+                0
+              }
+              icon={
+                <ShieldAlert className="text-purple-500" />
+              }
+              bg="bg-purple-100"
+            />
 
           </div>
 
           {/* FILTER */}
           <div className="bg-white rounded-3xl p-6 shadow-sm mb-6">
 
-            <div className="flex flex-col lg:flex-row gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
               {/* SEARCH */}
-              <div className="flex-1 relative">
+              <div className="relative lg:col-span-2">
 
                 <Search
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -703,43 +1012,73 @@ export default function AdminDashboard() {
 
               </div>
 
-              {/* FILTER TYPE */}
-              <div className="relative">
+              {/* TYPE */}
+              <select
+                value={selectedType}
+                onChange={(e) =>
+                  setSelectedType(
+                    e.target.value
+                  )
+                }
+                className="px-5 py-4 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
 
-                <select
-                  value={selectedType}
-                  onChange={(e) =>
-                    setSelectedType(
-                      e.target.value
-                    )
-                  }
-                  className="appearance-none px-5 py-4 rounded-2xl border border-gray-200 bg-white pr-12 focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
+                <option value="all">
+                  All Types
+                </option>
 
-                  <option value="all">
-                    All Types
-                  </option>
+                <option value="blood_pressure">
+                  Blood Pressure
+                </option>
 
-                  <option value="blood_pressure">
-                    Blood Pressure
-                  </option>
+                <option value="sugar">
+                  Sugar
+                </option>
 
-                  <option value="sugar">
-                    Sugar
-                  </option>
+                <option value="cholesterol">
+                  Cholesterol
+                </option>
 
-                  <option value="cholesterol">
-                    Cholesterol
-                  </option>
+              </select>
 
-                </select>
+              {/* STATUS */}
+              <select
+                value={
+                  selectedStatus
+                }
+                onChange={(e) =>
+                  setSelectedStatus(
+                    e.target.value
+                  )
+                }
+                className="px-5 py-4 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
 
-                <ChevronDown
-                  size={18}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
+                <option value="all">
+                  All Status
+                </option>
 
-              </div>
+                <option value="Critical">
+                  Critical
+                </option>
+
+                <option value="High Risk">
+                  High Risk
+                </option>
+
+                <option value="Warning">
+                  Warning
+                </option>
+
+                <option value="Normal">
+                  Normal
+                </option>
+
+                <option value="Low">
+                  Low
+                </option>
+
+              </select>
 
             </div>
 
@@ -750,33 +1089,14 @@ export default function AdminDashboard() {
 
             <div className="overflow-x-auto">
 
-              <table className="w-full">
+              <table className="w-full min-w-[1400px]">
 
                 <thead className="bg-gray-50 border-b">
 
                   <tr>
 
                     <th className="text-left p-5 font-semibold text-gray-600">
-                      Citizen ID
-                    </th>
-
-                    <th
-                      onClick={() =>
-                        handleSort(
-                          "name"
-                        )
-                      }
-                      className="text-left p-5 font-semibold text-gray-600 cursor-pointer"
-                    >
-
-                      <div className="flex items-center gap-2">
-
-                        Name
-
-                        <ArrowUpDown size={16} />
-
-                      </div>
-
+                      User
                     </th>
 
                     <th className="text-left p-5 font-semibold text-gray-600">
@@ -790,7 +1110,7 @@ export default function AdminDashboard() {
                     <th
                       onClick={() =>
                         handleSort(
-                          "province"
+                          "severity"
                         )
                       }
                       className="text-left p-5 font-semibold text-gray-600 cursor-pointer"
@@ -798,16 +1118,24 @@ export default function AdminDashboard() {
 
                       <div className="flex items-center gap-2">
 
-                        Province
+                        Status
 
-                        <ArrowUpDown size={16} />
+                        <ChevronDown size={16} />
 
                       </div>
 
                     </th>
 
                     <th className="text-left p-5 font-semibold text-gray-600">
-                      Risk
+                      Recommendation
+                    </th>
+
+                    <th className="text-left p-5 font-semibold text-gray-600">
+                      BMI
+                    </th>
+
+                    <th className="text-left p-5 font-semibold text-gray-600">
+                      Province
                     </th>
 
                     <th
@@ -823,16 +1151,11 @@ export default function AdminDashboard() {
 
                         Date
 
-                        {sortField ===
-                        "createdAt" ? (
-                          sortOrder ===
-                          "asc" ? (
-                            <ChevronUp size={16} />
-                          ) : (
-                            <ChevronDown size={16} />
-                          )
+                        {sortOrder ===
+                        "asc" ? (
+                          <ChevronUp size={16} />
                         ) : (
-                          <ArrowUpDown size={16} />
+                          <ChevronDown size={16} />
                         )}
 
                       </div>
@@ -846,136 +1169,176 @@ export default function AdminDashboard() {
                 <tbody>
 
                   {filteredRecords.map(
-                    (item) => (
+                    (item) => {
 
-                      <tr
-                        key={item._id}
-                        className="border-b hover:bg-gray-50 transition-all"
-                      >
+                      const analysis =
+                        analyzeHealth(
+                          item
+                        );
 
-                        <td className="p-5">
-                          {
-                            item?.user
-                              ?.citizenId
+                      return (
+
+                        <tr
+                          key={
+                            item._id
                           }
-                        </td>
+                          className="border-b hover:bg-gray-50 transition-all"
+                        >
 
-                        <td className="p-5">
+                          {/* USER */}
+                          <td className="p-5">
 
-                          <p className="font-semibold text-gray-800">
-                            {
-                              item?.user
-                                ?.firstName
-                            }{" "}
-                            {
-                              item?.user
-                                ?.lastName
-                            }
-                          </p>
+                            <div className="flex items-center gap-4">
 
-                          {/* GENDER */}
-                          <div className="flex items-center gap-2 mt-2">
+                              <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
 
-                            {item?.user
-                              ?.gender ===
-                            "male" ? (
+                                {item?.user
+                                  ?.gender ===
+                                "male" ? (
 
-                              <div className="flex items-center gap-1 text-blue-500 text-sm">
+                                  <Mars className="text-blue-500" />
 
-                                <Mars size={14} />
+                                ) : (
 
-                                Male
+                                  <Venus className="text-pink-500" />
+
+                                )}
 
                               </div>
 
-                            ) : (
+                              <div>
 
-                              <div className="flex items-center gap-1 text-pink-500 text-sm">
+                                <div className="font-semibold text-gray-800">
+                                  {
+                                    item
+                                      ?.user
+                                      ?.firstName
+                                  }{" "}
+                                  {
+                                    item
+                                      ?.user
+                                      ?.lastName
+                                  }
+                                </div>
 
-                                <Venus size={14} />
-
-                                Female
+                                <div className="text-sm text-gray-500 mt-1">
+                                  {
+                                    item
+                                      ?.user
+                                      ?.citizenId
+                                  }
+                                </div>
 
                               </div>
-                            )}
 
-                          </div>
+                            </div>
 
-                        </td>
+                          </td>
 
-                        <td className="p-5">
+                          {/* TYPE */}
+                          <td className="p-5">
 
-                          <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-
-                            {
-                              getTypeLabel(
-                                item?.type
-                              )
-                            }
-
-                          </span>
-
-                        </td>
-
-                        <td className="p-5 font-medium">
-                          {
-                            renderValue(
-                              item
-                            )
-                          }
-                        </td>
-
-                        <td className="p-5">
-                          {
-                            item?.user
-                              ?.province
-                          }
-                        </td>
-
-                        <td className="p-5">
-
-                          {item?.cvdRisk ? (
-
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                item?.cvdRisk
-                                  ?.level ===
-                                "risk_high"
-                                  ? "bg-red-100 text-red-600"
-                                  : item
-                                        ?.cvdRisk
-                                        ?.level ===
-                                      "risk_medium"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-green-100 text-green-700"
-                              }`}
-                            >
+                            <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
 
                               {
-                                item?.cvdRisk
-                                  ?.label
+                                getTypeLabel(
+                                  item?.type
+                                )
                               }
 
                             </span>
 
-                          ) : (
-                            "-"
-                          )}
+                          </td>
 
-                        </td>
+                          {/* VALUE */}
+                          <td className="p-5 font-semibold text-gray-800">
 
-                        <td className="p-5 text-sm text-gray-500">
+                            {
+                              renderValue(
+                                item
+                              )
+                            }
 
-                          {new Date(
-                            item?.createdAt
-                          ).toLocaleString(
-                            "th-TH"
-                          )}
+                          </td>
 
-                        </td>
+                          {/* STATUS */}
+                          <td className="p-5">
 
-                      </tr>
-                    )
+                            <div
+                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${analysis.color}`}
+                            >
+
+                              {
+                                analysis.icon
+                              }
+
+                              {
+                                analysis.status
+                              }
+
+                            </div>
+
+                          </td>
+
+                          {/* RECOMMEND */}
+                          <td className="p-5 max-w-xs">
+
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              {
+                                analysis.recommendation
+                              }
+                            </p>
+
+                          </td>
+
+                          {/* BMI */}
+                          <td className="p-5">
+
+                            {item?.bmi ? (
+
+                              <div className="font-semibold text-gray-800">
+                                {
+                                  item.bmi
+                                }
+                              </div>
+
+                            ) : (
+                              "-"
+                            )}
+
+                          </td>
+
+                          {/* PROVINCE */}
+                          <td className="p-5 text-gray-600">
+
+                            {
+                              item?.user
+                                ?.province ||
+                              "-"
+                            }
+
+                          </td>
+
+                          {/* DATE */}
+                          <td className="p-5">
+
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+
+                              <Clock3 size={14} />
+
+                              {new Date(
+                                item?.createdAt
+                              ).toLocaleString(
+                                "th-TH"
+                              )}
+
+                            </div>
+
+                          </td>
+
+                        </tr>
+                      );
+                    }
                   )}
 
                 </tbody>
@@ -1013,6 +1376,46 @@ export default function AdminDashboard() {
         </div>
 
       </main>
+
+    </div>
+  );
+}
+
+// ===============================
+// SUMMARY CARD
+// ===============================
+function SummaryCard({
+  title,
+  value,
+  icon,
+  bg,
+}) {
+  return (
+    <div className="bg-white rounded-3xl p-6 shadow-sm">
+
+      <div className="flex items-center justify-between">
+
+        <div>
+
+          <p className="text-gray-500 text-sm">
+            {title}
+          </p>
+
+          <h2 className="text-4xl font-bold mt-3">
+            {value}
+          </h2>
+
+        </div>
+
+        <div
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center ${bg}`}
+        >
+
+          {icon}
+
+        </div>
+
+      </div>
 
     </div>
   );
