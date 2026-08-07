@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 const USER_API =
   process.env.NODE_ENV === "development"
     ? "http://localhost:8080/api"
-    : "https://carevigoapi2026-969172408065.asia-southeast3.run.app/api";
+    : "https://carevigoapi.onrender.com/api";
 
 // ADMIN API
 const ADMIN_API =
