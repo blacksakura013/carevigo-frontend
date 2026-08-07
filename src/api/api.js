@@ -15,8 +15,8 @@ const USER_API =
 const ADMIN_API =
   process.env.NODE_ENV === "development"
     ? "http://localhost:8080/api"
-    : "https://carevigoapi2026-969172408065.asia-southeast3.run.app/api";
-
+    : "https://carevigoapi.onrender.com/api";
+// ex https://carevigoapi2026-969172408065.asia-southeast3.run.app/api
 // 🔥 ถ้า path เป็น /admin → ใช้ ADMIN API
 const isAdminRoute =
   window.location.pathname.startsWith(
