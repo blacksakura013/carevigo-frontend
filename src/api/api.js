@@ -285,7 +285,24 @@ export const getRiskProvinces =
     API.get(
       "/dashboard/risk/provinces"
     );
+export const adminLogin = (email, password) =>
+  API.post("/auth/login", {
+    email,
+    password,
+  });
 
+export const changeAdminPassword = (password) =>
+  API.post("/auth/change-password", {
+    password,
+  });
+
+export const getAdminProfile = () =>
+  API.get("/auth/me");
+
+export const refreshToken = (refreshToken) =>
+  API.post("/auth/refresh-token", {
+    refreshToken,
+  });
 // ======================================================
 // 🔧 EXPORT
 // ======================================================
