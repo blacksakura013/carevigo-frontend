@@ -54,6 +54,7 @@ import {
   PageHeading,
 } from "../components/ui";
 import AdminSidebar from "../components/admin/AdminSidebar";
+import AdminCohortReport from "../components/admin/AdminCohortReport";
 import ReviewQueue, {
   ReviewPolicyPanel,
   ReviewStatusBadge,
@@ -127,6 +128,7 @@ const SMOKING_LABELS = {
 };
 const MENU_LABELS = {
   dashboard: "แดชบอร์ดสุขภาพ",
+  reports: "รายงานสุขภาพตามกลุ่มและช่วงเวลา",
   members: "ทะเบียนสมาชิก",
   reviews: "ตรวจสอบบันทึก",
   verification: "ยืนยันสมาชิก",
@@ -395,6 +397,7 @@ export default function AdminDashboard() {
     loadOverview();
   }, [loadOverview, refreshKey]);
   useEffect(() => {
+    if (activeMenu !== "dashboard") { setHealthLoading(false); return undefined; }
     let cancelled = false;
     setHealthLoading(true);
     setHealthError("");
@@ -425,7 +428,7 @@ export default function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [healthPage, refreshKey, healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort]);
+  }, [activeMenu, healthPage, refreshKey, healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort]);
   useEffect(() => {
     if (search.trim() === healthQuery) return undefined;
     const timer = setTimeout(() => { setHealthQuery(search.trim()); setHealthPage(1); }, 350);
@@ -612,6 +615,8 @@ export default function AdminDashboard() {
             description={
               activeMenu === "dashboard"
                 ? "เลือกหมวดผลตรวจ แล้วดูค่า การแปลผล และสิ่งที่ควรทำต่อ"
+                : activeMenu === "reports"
+                  ? "ดูรายบุคคล แยกกลุ่มโรคและวันที่ พร้อมสรุปวัน เดือน 3 เดือน และ 6 เดือน"
                 : activeMenu === "members"
                   ? "ค้นหาและเปิดดูข้อมูลสมาชิก พร้อมประวัติการบันทึกสุขภาพ"
                   : activeMenu === "verification"
@@ -621,14 +626,14 @@ export default function AdminDashboard() {
                       : "จัดการข้อมูลบัญชีผู้ดูแลและรหัสผ่านของคุณ"
             }
           >
-            <Button
+            {activeMenu !== "reports" && <Button
               variant="secondary"
               onClick={refresh}
               loading={overviewLoading || healthLoading || usersLoading}
             >
               <RefreshCw size={16} />
               รีเฟรชข้อมูล
-            </Button>
+            </Button>}
           </PageHeading>
           {feedback && (
             <div className="admin-feedback" role="status">
@@ -642,7 +647,7 @@ export default function AdminDashboard() {
               </button>
             </div>
           )}
-          {overviewError && (
+          {overviewError && activeMenu !== "reports" && (
             <Notice tone="error">
               {overviewError}{" "}
               <button className="admin-text-button" onClick={refresh}>
@@ -650,6 +655,7 @@ export default function AdminDashboard() {
               </button>
             </Notice>
           )}
+          {activeMenu === "reports" && <AdminCohortReport refreshKey={refreshKey} />}
           {activeMenu === "dashboard" && (
             <>
               <section className="admin-health-type-cards" aria-label="จำนวนบันทึกสุขภาพแยกตามประเภท">

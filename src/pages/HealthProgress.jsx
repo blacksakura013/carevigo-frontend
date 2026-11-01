@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, RefreshCw, Search, TrendingUp } from "lucide-react";
 import { getApiError, getHealthProgress, getStoredPatient } from "../api/api";
 import { Button, EmptyState, Field, Notice, PageHeading, PublicLayout } from "../components/ui";
@@ -8,6 +8,7 @@ import HealthProgressPanel from "../components/HealthProgressPanel";
 import { normalizeHealthProgress } from "../utils/healthProgress";
 import { formatThaiDate, gregorianDate, todayGregorian } from "../utils/thaiDate";
 import { getDashboardRecordModel } from "../utils/dashboardRecord";
+import { cohortReportHref, initialCohortQuery } from "../utils/adminCohort";
 import { ThaiCvRiskCard } from "./AddHealth";
 import { recordMeasurements, ReviewAudit } from "./HealthHistory";
 import "../styles/health-progress-page.css";
@@ -16,6 +17,10 @@ const TYPES = { blood_pressure: "ความดันโลหิต", sugar: "
 const PERIODS = [["30", "30 วัน"], ["90", "90 วัน"], ["365", "1 ปี"], ["all", "ทั้งหมด"]];
 const recordedAt = record => record.recordedAt || record.submittedAt || record.createdAt;
 const dateLabel = value => formatThaiDate(value, { withTime: true, empty: "ไม่ระบุวันที่" });
+function linkedRange(search) {
+  const params = new URLSearchParams(search), from = gregorianDate(params.get("from")), to = gregorianDate(params.get("to"));
+  return from && to && from <= to && to <= todayGregorian() ? { from, to } : { days: ["30", "90", "365", "all"].includes(params.get("days")) ? params.get("days") : "90" };
+}
 function progressError(error) {
   if ([404, 405].includes(error.response?.status) || error.code === "PROGRESS_RESPONSE_INVALID")
     return "ระบบติดตามผลยังไม่พร้อมแสดงข้อมูล กรุณาแจ้งเจ้าหน้าที่หรือลองใหม่ภายหลัง";
@@ -49,12 +54,16 @@ function LatestGuidance({ data }) {
 export default function HealthProgress({ staffMode = false }) {
   const { citizenId: routeCitizenId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const rangeKey = JSON.stringify(linkedRange(location.search));
+  const range = useMemo(() => JSON.parse(rangeKey), [rangeKey]);
   const scope = staffMode ? "admin" : "patient";
   const [lookupId, setLookupId] = useState(routeCitizenId || "");
   const [lookupError, setLookupError] = useState("");
-  const [query, setQuery] = useState({ days: "90", reviewStatus: "all", page: 1 });
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState(todayGregorian);
+  const [queryState, setQuery] = useState({ reviewStatus: "all", page: 1 });
+  const query = useMemo(() => ({ ...range, reviewStatus: queryState.reviewStatus, page: queryState.page }), [range, queryState.reviewStatus, queryState.page]);
+  const [from, setFrom] = useState(range.from || "");
+  const [to, setTo] = useState(range.to || todayGregorian);
   const [dateError, setDateError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState(null);
@@ -69,6 +78,7 @@ export default function HealthProgress({ staffMode = false }) {
   const periodData = result?.context === contextKey ? result.data : null;
 
   useEffect(() => { document.title = staffMode ? "ติดตามผลสุขภาพสมาชิก | Save Stroke" : "ติดตามผลสุขภาพของฉัน | Save Stroke"; }, [staffMode]);
+  useEffect(() => { setFrom(range.from || ""); setTo(range.to || todayGregorian()); setDateError(""); }, [range]);
   useEffect(() => { setLookupId(routeCitizenId || ""); setLookupError(""); setQuery(previous => previous.page === 1 ? previous : { ...previous, page: 1 }); }, [routeCitizenId]);
   useEffect(() => {
     const currentVersion = ++version.current;
@@ -100,22 +110,35 @@ export default function HealthProgress({ staffMode = false }) {
     if (!/^\d{13}$/.test(lookupId)) { setLookupError("กรุณากรอกเลขบัตรประชาชนให้ครบ 13 หลัก"); return; }
     setLookupError(""); setResult(null); setQuery(previous => ({ ...previous, page: 1 }));
     if (lookupId === routeCitizenId) setAttempt(previous => previous + 1);
-    else navigate(`/admin/progress/${lookupId}`);
+    else {
+      const params = new URLSearchParams(location.search);
+      ["from", "to", "days"].forEach(key => params.delete(key));
+      Object.entries(query.from ? { from: query.from, to: query.to } : { days: query.days }).forEach(([key, value]) => params.set(key, value));
+      navigate(`/admin/progress/${lookupId}?${params}`);
+    }
   };
-  const applyPeriod = days => { setDateError(""); setQuery(previous => ({ days, reviewStatus: previous.reviewStatus, page: 1 })); };
+  const applyRange = range => {
+    setDateError(""); setQuery(previous => ({ ...range, reviewStatus: previous.reviewStatus, page: 1 }));
+    const params = new URLSearchParams(location.search);
+    ["from", "to", "days"].forEach(key => params.delete(key));
+    Object.entries(range).forEach(([key, value]) => params.set(key, value));
+    navigate(`${location.pathname}?${params}`, { replace: true });
+  };
+  const applyPeriod = days => applyRange({ days });
   const customRange = event => {
     event.preventDefault();
     const start = gregorianDate(from), end = gregorianDate(to);
     if (!start || !end || start > end || end > todayGregorian()) {
       setDateError("กรุณาระบุวันเริ่มต้นและวันสิ้นสุดให้ถูกต้อง โดยวันสิ้นสุดไม่เกินวันนี้"); return;
     }
-    setDateError(""); setQuery(previous => ({ from: start, to: end, reviewStatus: previous.reviewStatus, page: 1 }));
+    applyRange({ from: start, to: end });
   };
 
   return <PublicLayout active="progress" accountScope={scope}>
     <PageHeading eyebrow="HEALTH PROGRESS" title={staffMode ? "ติดตามผลสุขภาพสมาชิก" : "ติดตามผลสุขภาพของฉัน"}
       description="ดูค่าครั้งก่อนเทียบครั้งล่าสุด แนวโน้มตามวันที่บันทึก และความคืบหน้าการตรวจสอบ">
-      {staffMode ? <Link className="btn btn-secondary" to="/admin?view=members"><ArrowLeft size={18} />ทะเบียนสมาชิก</Link>
+      {staffMode ? <div className="progress-periods"><Link className="btn btn-secondary" to="/admin?view=members"><ArrowLeft size={18} />ทะเบียนสมาชิก</Link>
+        <Link className="btn btn-secondary" to={cohortReportHref(query, initialCohortQuery(location.search))}>รายงานกลุ่มโรคและช่วงเวลา</Link></div>
         : <Link className="btn btn-primary" to={`/health/${citizenId || ""}`}>บันทึกผลใหม่<ArrowRight size={18} /></Link>}
     </PageHeading>
     {staffMode && <section className="panel progress-member-search" aria-label="เลือกสมาชิกเพื่อติดตามผล">

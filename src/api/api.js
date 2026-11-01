@@ -452,6 +452,8 @@ export const changeAdminPassword = (password) =>
   }));
 export const adminLogout = () => logoutScope("admin");
 export const getDashboardSummary = () => API.get("/dashboard/summary");
+export const getAdminCohortReport = (params, options = {}) =>
+  API.get("/dashboard/cohorts", { ...options, sessionScope: "admin", params });
 export const getDashboardUsers = () => API.get("/dashboard/users");
 export const getDashboardHealth = (page = 1, limit = 100, filters = {}) => {
   const selected = typeof filters === "string" ? { type: filters } : filters || {};

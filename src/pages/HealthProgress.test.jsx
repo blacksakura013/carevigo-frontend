@@ -15,6 +15,10 @@ function RouteChange() {
   const navigate = useNavigate();
   return <button onClick={() => navigate(`/admin/progress/${otherId}`)}>เปิดสมาชิกอื่น</button>;
 }
+function RangeChange() {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate("?from=2026-02-01&to=2026-02-28")}>เปลี่ยนช่วงจากลิงก์</button>;
+}
 const mount = (staff = false, id = progressPatient.citizenId) => render(<MemoryRouter initialEntries={[`${staff ? "/admin" : ""}/progress/${id}`]}>
   <Routes><Route path={staff ? "/admin/progress/:citizenId" : "/progress/:citizenId"} element={<><HealthProgress staffMode={staff} />{staff && <RouteChange />}</>} /></Routes>
 </MemoryRouter>);
@@ -35,6 +39,26 @@ test("a member always requests their own history while staff context can request
   await screen.findByText("มุมมองเจ้าหน้าที่ · ข้อมูลสมาชิกที่เลือก");
   expect(getHealthProgress).toHaveBeenLastCalledWith(expect.objectContaining({ citizenId: otherId }), expect.objectContaining({ sessionScope: "admin" }));
   screen.getAllByRole("link", { name: /แดชบอร์ดเจ้าหน้าที่/ }).forEach(link => expect(link).toHaveAttribute("href", "/admin"));
+});
+
+test("an individual report link uses its original period before the first read and provides a matching return link", async () => {
+  render(<MemoryRouter initialEntries={[`/admin/progress/${otherId}?from=2026-01-01&to=2026-06-30`]}>
+    <Routes><Route path="/admin/progress/:citizenId" element={<HealthProgress staffMode />} /></Routes>
+  </MemoryRouter>);
+  await screen.findByText("มุมมองเจ้าหน้าที่ · ข้อมูลสมาชิกที่เลือก");
+  expect(getHealthProgress.mock.calls[0][0]).toMatchObject({ citizenId: otherId, from: "2026-01-01", to: "2026-06-30" });
+  expect(getHealthProgress.mock.calls[0][0].days).toBeUndefined();
+  expect(screen.getAllByRole("link", { name: "รายงานกลุ่มโรคและช่วงเวลา" }).some(link => link.getAttribute("href") === "/admin?view=reports&from=2026-01-01&to=2026-06-30")).toBe(true);
+});
+
+test("query-only navigation immediately follows the new report period on the same mounted member route", async () => {
+  render(<MemoryRouter initialEntries={[`/admin/progress/${otherId}?from=2026-01-01&to=2026-01-31`]}>
+    <Routes><Route path="/admin/progress/:citizenId" element={<><HealthProgress staffMode /><RangeChange /></>} /></Routes>
+  </MemoryRouter>);
+  await screen.findByText("มุมมองเจ้าหน้าที่ · ข้อมูลสมาชิกที่เลือก");
+  fireEvent.click(screen.getByRole("button", { name: "เปลี่ยนช่วงจากลิงก์" }));
+  await waitFor(() => expect(getHealthProgress.mock.calls.at(-1)[0]).toMatchObject({ from: "2026-02-01", to: "2026-02-28" }));
+  expect(screen.getByLabelText("วันที่เริ่มต้น (พ.ศ.)")).toHaveValue("01/02/2569");
 });
 
 test("date presets and manual Buddhist dates send Gregorian ranges and invalid custom dates do not send a query", async () => {

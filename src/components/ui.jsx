@@ -229,6 +229,7 @@ export function PublicLayout({
           icon: UserRoundPlus,
         },
         { to: "/admin/progress", key: "progress", label: "ติดตามผลสุขภาพ", icon: TrendingUp },
+        { to: "/admin?view=reports", key: "reports", label: "รายงานกลุ่มโรคและช่วงเวลา", icon: ClipboardPlus },
         ...publicLinks.filter((link) =>
           ["health", "history", "guest"].includes(link.key),
         ),

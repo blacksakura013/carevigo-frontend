@@ -1,0 +1,27 @@
+.admin-shell .cohort-report-page { display: grid; gap: 24px; min-width: 0; color: #173c31; }
+.admin-shell .cohort-report-page :is(h2,h3,p) { overflow-wrap: anywhere; }
+.admin-shell .cohort-filter-form { display: grid; gap: 18px; }
+.admin-shell .cohort-period-buttons,.admin-shell .cohort-page-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.admin-shell .cohort-filter-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.admin-shell .cohort-report-page :is(.cohort-page-note,.cohort-person p,.cohort-applied-range p) { color: #425d52; font-size: 1.125rem; line-height: 1.8; }
+.admin-shell .cohort-form-error { color: #a5232a; font-weight: 600; }
+.admin-shell .cohort-applied-range,.admin-shell .cohort-person-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.admin-shell .cohort-applied-range h2 { font-size: 1.5rem; }
+.admin-shell .cohort-page-loading { padding: 24px; border: 1px solid #a9c3b7; border-radius: 14px; background: #eef6f2; font-size: 1.25rem; }
+.admin-shell .cohort-person-list { display: grid; gap: 20px; margin-bottom: 24px; }
+.admin-shell .cohort-person { padding: 24px; border: 2px solid #adbfB4; border-radius: 16px; background: #fff; min-width: 0; }
+.admin-shell .cohort-person h3 { font-size: 1.5rem; line-height: 1.65; }
+.admin-shell .cohort-person-counts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin: 20px 0; }
+.admin-shell .cohort-person-counts div { padding: 14px; background: #f0f5f2; border-radius: 10px; }
+.admin-shell .cohort-person-counts dt { color: #425d52; font-size: 1.0625rem; }
+.admin-shell .cohort-person-counts dd { margin: 8px 0 0; font-size: 1.25rem; font-weight: 700; }
+.admin-shell .cohort-latest-readings { display: grid; gap: 14px; margin: 20px 0; }
+.admin-shell .cohort-latest-readings h4,.admin-shell .cohort-latest-readings h5 { font-size: 1.25rem; line-height: 1.7; }
+.admin-shell .cohort-latest-reading { padding: 16px; border: 1px solid #9ebdaf; border-radius: 12px; background: #f4f8f5; }
+.admin-shell .cohort-latest-reading dl { display: flex; flex-wrap: wrap; gap: 16px; }
+.admin-shell .cohort-latest-reading dt { font-size: 1.0625rem; color: #425d52; }
+.admin-shell .cohort-latest-reading dd { margin: 6px 0 0; font-size: 1.375rem; font-weight: 700; }
+.admin-shell .cohort-report-page .btn { white-space: normal; min-height: 48px; }
+.admin-shell .cohort-report-page :is(input,select) { min-width: 0; width: 100%; }
+@media(max-width:1000px) { .admin-shell .cohort-person-counts { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:640px) { .admin-shell .cohort-filter-grid,.admin-shell .cohort-person-counts { grid-template-columns: minmax(0,1fr); } .admin-shell .cohort-person { padding: 16px; } .admin-shell .cohort-report-page .btn { max-width: 100%; } }

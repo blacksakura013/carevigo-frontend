@@ -5,7 +5,7 @@ import API, {
   patientLogout, restoreSession, saveAdminSession, savePatientSession,
   storePatientProfile, submitGuestHealth, changePatientPassword, changeAdminPassword, updatePatientProfile,
   requestAdminPasswordReset, validateAdminPasswordReset, resetAdminPassword,
-  searchUser, getGuestProfile, getDashboardHealth, getHealthProgress,
+  searchUser, getGuestProfile, getDashboardHealth, getHealthProgress, getAdminCohortReport,
 } from "./api";
 import { beginSessionLoad, clearSession, installSessionSync, SESSION_EVENT_KEY } from "../utils/session";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
@@ -16,6 +16,17 @@ jest.mock("../utils/apiReadiness", () => ({ createApiReadiness: () => ({
 }) }));
 
 const originalAdapter = API.defaults.adapter;
+
+test("cohort reporting pins admin scope even when the caller has both sessions and passes patient options", async () => {
+  saveAdminSession(session("admin", "cohort-staff")); savePatientSession(session("patient", "cohort-patient"));
+  const params = { from: "2026-01-01", to: "2026-06-30", disease: "diabetes", activity: "none", search: "เชียงใหม่", page: 2, limit: 20 };
+  API.defaults.adapter = async config => {
+    expect(config.url).toBe("/dashboard/cohorts"); expect(config.method).toBe("get"); expect(config.params).toEqual(params);
+    expect(config.headers["X-Carevigo-Scope"]).toBe("admin"); expect(config.headers["X-Carevigo-Session-Id"]).toBe("cohort-staff");
+    return ok(config, {});
+  };
+  await getAdminCohortReport(params, { sessionScope: "patient" });
+});
 
 test.each(["admin", "patient"])("progress reads pin explicit %s scope and its SID when both accounts are authenticated", async scope => {
   saveAdminSession(session("admin", "progress-staff")); savePatientSession(session("patient", "progress-patient"));

@@ -17,6 +17,7 @@ import { Brand } from "../ui";
 
 const menus = [
   { id: "dashboard", label: "ภาพรวมการดูแล", icon: LayoutDashboard },
+  { id: "reports", label: "รายงานกลุ่มโรคและช่วงเวลา", icon: TrendingUp },
   { id: "members", label: "ทะเบียนสมาชิก", icon: Users },
   { id: "reviews", label: "ตรวจสอบบันทึก", icon: ClipboardCheck },
   { id: "verification", label: "ยืนยันสมาชิก", icon: ShieldCheck },

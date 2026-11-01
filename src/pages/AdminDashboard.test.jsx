@@ -9,12 +9,14 @@ import {
 } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import AdminDashboard from "./AdminDashboard";
+import { cohortFixture } from "../testUtils/adminCohort";
 import {
   approveAdminUser,
   changeAdminPassword,
   getAdminUser,
   getAdminUsers,
   getDashboardHealth,
+  getAdminCohortReport,
   getDashboardSummary,
   getDashboardVerification,
   getReviewSettings,
@@ -24,6 +26,7 @@ import {
 
 jest.mock("../api/api", () => ({
   getDashboardHealth: jest.fn(),
+  getAdminCohortReport: jest.fn(),
   getStoredAdmin: jest.fn(),
   getDashboardSummary: jest.fn(),
   getDashboardVerification: jest.fn(),
@@ -79,6 +82,16 @@ function renderDashboard(url = "/admin") {
     </BrowserRouter>,
   );
 }
+
+test("staff reports use their own scoped result without fetching the old dashboard list or showing unrelated overview errors", async () => {
+  getDashboardSummary.mockRejectedValue(new Error("unrelated overview unavailable"));
+  getAdminCohortReport.mockImplementation(query => Promise.resolve({ data: { data: cohortFixture(query) } }));
+  renderDashboard("/admin?view=reports&from=2026-01-01&to=2026-01-31");
+  expect(await screen.findByRole("region", { name: "รายบุคคลในรายงาน" })).toBeVisible();
+  expect(getDashboardHealth).not.toHaveBeenCalled();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "รายงานกลุ่มโรคและช่วงเวลา" })).toHaveAttribute("aria-current", "page");
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -473,11 +486,11 @@ test("all real measurements remain visible and clinical severity is separate fro
   for (const text of ["6.5 %", "180 mg/dL", "190 mg/dL", "55 mg/dL", "120 mg/dL", "137 mmHg", "92 mmHg", "72 ครั้ง/นาที", "30.1 กก./ม²"])
     expect(within(table).getByText(text, { exact: true })).toBeInTheDocument();
   const sugar = within(table).getAllByRole("row").find(row => within(row).queryByText("6.5 %"));
-  expect(sugar.querySelector(".admin-record-level-high")).toBeInTheDocument();
+  expect(within(sugar).getByText(/./, { selector: ".admin-record-level-high" })).toBeInTheDocument();
   expect(within(sugar).getByText("6.25% · ความเสี่ยงต่ำ")).toBeInTheDocument();
   expect(sugar).not.toHaveTextContent(/29%|— mg\/dL/); expect(table).not.toHaveTextContent(member.citizenId);
   const legacy = within(table).getAllByRole("row").find(row => within(row).queryByText("30.1 กก./ม²"));
-  expect(legacy.querySelector(".admin-record-level-neutral")).toBeInTheDocument();
+  expect(within(legacy).getByText(/./, { selector: ".admin-record-level-neutral" })).toBeInTheDocument();
   expect(legacy).toHaveTextContent("ไม่ระบุสถานะรายการ"); expect(legacy).not.toHaveTextContent("ยืนยันแล้ว");
   expect(screen.getByText(/เมื่อไม่มีวันเกิดจะใช้เกณฑ์ผู้ใหญ่ทั่วไป/)).toBeInTheDocument();
 });
