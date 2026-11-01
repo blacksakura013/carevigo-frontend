@@ -1,5 +1,7 @@
 const LOCAL_ORIGIN = "https://save-stroke.local";
 
+export const normalizePathname = pathname => pathname.replace(/\/+$/, "").toLowerCase() || "/";
+
 function localDestination(value) {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
   if ([...value].some(character => character === "\\" ||
@@ -8,7 +10,7 @@ function localDestination(value) {
     const url = new URL(value, LOCAL_ORIGIN);
     if (url.origin !== LOCAL_ORIGIN) return null;
     return {
-      pathname: url.pathname.replace(/\/$/, "") || "/",
+      pathname: normalizePathname(url.pathname),
       suffix: `${url.search}${url.hash}`,
     };
   } catch {

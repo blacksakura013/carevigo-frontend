@@ -16,6 +16,19 @@ test("staff return paths preserve a known page, query, and fragment", () => {
   expect(getAdminDestination("/admin/")).toBe("/admin");
 });
 
+test("router aliases return to the same canonical staff or personal workflow after login", () => {
+  expect(getAdminDestination("/REGISTER///?step=profile#Personal-Details")).toBe("/register?step=profile#Personal-Details");
+  expect(getAdminDestination("/AdMiN//?view=reviews#Pending")).toBe("/admin?view=reviews#Pending");
+  expect(getPatientDestination("/HISTORY/9999999999999///?type=sugar#Latest", patient)).toBe("/history/1234567890123?type=sugar#Latest");
+  expect(getPatientDestination("/HeAlTh//?section=bmi#Reading", patient)).toBe("/health/1234567890123?section=bmi#Reading");
+  expect(getPatientDestination("/PROFILE///?section=conditions#Cancer", patient)).toBe("/profile?section=conditions#Cancer");
+});
+
+test("case and trailing slash normalization do not allow unrelated or external return destinations", () => {
+  for (const from of ["/ADMIN/LOGIN///", "/REGISTER-EXTRA/", "/HISTORY/1234567890123/EXPORT/", "//example.test/REGISTER/", "/%2Fexample.test/REGISTER/"])
+    expect([getAdminDestination(from), getPatientDestination(from, patient)]).toEqual(["/admin", "/"]);
+});
+
 test("staff return paths cannot target lookalike, login, unknown, or patient routes", () => {
   for (const from of ["/administrator", "/admin/login", "/admin/unknown", "/register-extra", "/profile", "/guest"])
     expect(getAdminDestination(from)).toBe("/admin");

@@ -39,10 +39,10 @@ import {
   subscribeSessions,
   storePatientProfile,
 } from "./api/api";
-import { getLandingDestination } from "./utils/navigation";
+import { getLandingDestination, normalizePathname } from "./utils/navigation";
 
 const PUBLIC_ADMIN_AUTH_PATHS = new Set(["/admin/login", "/admin/forgot-password", "/admin/reset-password"]);
-const isPublicAdminAuthPath = pathname => PUBLIC_ADMIN_AUTH_PATHS.has(pathname.replace(/\/+$/, "").toLowerCase());
+const isPublicAdminAuthPath = pathname => PUBLIC_ADMIN_AUTH_PATHS.has(normalizePathname(pathname));
 
 function SessionBoundary({ scope, children }) {
   const scopes = Array.isArray(scope) ? scope : [scope];
@@ -112,15 +112,16 @@ function PasswordChangeNotice() {
 function NavigationEffects() {
   const location = useLocation();
   const navigate = useNavigate();
+  const pathname = normalizePathname(location.pathname);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
   useEffect(() => {
     const leaveAdmin = (expired) => {
       if (
-        ((location.pathname === "/admin" || location.pathname.startsWith("/admin/")) &&
-          !isPublicAdminAuthPath(location.pathname)) ||
-        location.pathname === "/register"
+        ((pathname === "/admin" || pathname.startsWith("/admin/")) &&
+          !isPublicAdminAuthPath(pathname)) ||
+        pathname === "/register"
       )
         navigate("/admin/login", {
           replace: true,
@@ -129,8 +130,8 @@ function NavigationEffects() {
     };
     const leavePatient = (expired) => {
       if (
-        ["/", "/profile", "/settings"].includes(location.pathname) ||
-        /^\/(health|history)(\/|$)/.test(location.pathname)
+        ["/", "/profile", "/settings"].includes(pathname) ||
+        /^\/(health|history)(\/|$)/.test(pathname)
       )
         navigate("/login", { replace: true, state: { expired, from: `${location.pathname}${location.search}${location.hash}` } });
     };
@@ -150,7 +151,7 @@ function NavigationEffects() {
     events.forEach(([name, fn]) => window.addEventListener(name, fn));
     return () =>
       events.forEach(([name, fn]) => window.removeEventListener(name, fn));
-  }, [location.pathname, location.search, location.hash, navigate]);
+  }, [location.pathname, location.search, location.hash, pathname, navigate]);
   return null;
 }
 
@@ -177,6 +178,7 @@ function RequirePatient({
 }) {
   const location = useLocation(),
     { citizenId } = useParams();
+  const pathname = normalizePathname(location.pathname);
   const patientSession = hasPatientSession();
   const staff = allowStaff && !patientSession && hasAdminSession();
   const sessionId = getSessionSnapshot("patient").sessionId;
@@ -214,7 +216,7 @@ function RequirePatient({
     };
   }, [sessionId, patientSession, staff, retry]);
   if (staff) return children;
-  if (!patientSession && record && location.pathname.startsWith("/health"))
+  if (!patientSession && record && pathname.startsWith("/health"))
     return <Navigate to="/guest" replace />;
   if (!patientSession)
     return (
@@ -252,7 +254,7 @@ function RequirePatient({
   if (record && (!citizenId || citizenId !== profile?.citizenId))
     return (
       <Navigate
-        to={`${location.pathname.startsWith("/history") ? "/history" : "/health"}/${profile.citizenId}${location.search}${location.hash}`}
+        to={`${pathname.startsWith("/history") ? "/history" : "/health"}/${profile.citizenId}${location.search}${location.hash}`}
         replace
       />
     );
