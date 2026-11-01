@@ -32,7 +32,9 @@ import BuddhistDateInput from "../components/BuddhistDateInput";
 import { formatThaiDate, gregorianDate, todayGregorian } from "../utils/thaiDate";
 import FormPages, { FormPage } from "../components/FormPages";
 import HealthResultSummary from "../components/HealthResultSummary";
+import { guestProfileLookupFailure, readGuestProfile } from "../utils/guestProfileLookup";
 import "../styles/patient.css";
+import "../styles/guest-lookup.css";
 
 const CONDITIONS = [
   "เบาหวาน",
@@ -171,6 +173,9 @@ export default function GuestHealth() {
   const [confirmation, setConfirmation] = useState(null);
   const [focusNewEntry, setFocusNewEntry] = useState(false);
   const [profileLookup, setProfileLookup] = useState("");
+  const [lookupAttempt, setLookupAttempt] = useState(0);
+  const [lookupFailure, setLookupFailure] = useState(null);
+  const [retryWait, setRetryWait] = useState(0);
   const requestKey = useRef({ fingerprint: "", id: "" });
   const pendingRef = useRef(false);
   const activeRef = useRef(true);
@@ -178,6 +183,7 @@ export default function GuestHealth() {
   const pagesRef = useRef(null);
   const lookupVersion = useRef(0);
   const lookupController = useRef(null);
+  const lookupBusy = useRef(false);
   const editedFields = useRef(new Set());
 
   useEffect(() => {
@@ -208,16 +214,19 @@ export default function GuestHealth() {
     if (location.search || location.hash) navigate("/guest", { replace: true });
   }, [location.search, location.hash, navigate]);
   useEffect(() => {
-    if (confirmation || !/^\d{13}$/.test(citizenId)) return;
+    if (confirmation || pendingRef.current || !/^\d{13}$/.test(citizenId)) return;
     const version = ++lookupVersion.current;
     const controller = new AbortController();
     lookupController.current = controller;
+    lookupBusy.current = true;
+    setProfileLookup("loading");
     const current = () => activeRef.current && version === lookupVersion.current && !controller.signal.aborted;
     const timer = setTimeout(async () => {
+      if (!current()) return;
       try {
         const response = await getGuestProfile(citizenId, { signal: controller.signal, isCurrent: current });
         if (!current()) return;
-        const person = response.data?.data;
+        const person = readGuestProfile(response);
         const fields = personalFields(person);
         setProfile(previous => {
           if (!current()) return previous;
@@ -226,23 +235,49 @@ export default function GuestHealth() {
             if (!editedFields.current.has(name)) next[name] = value;
           return next;
         });
-        setProfileLookup(person && typeof person === "object" && !Array.isArray(person) ? "found" : "empty");
-      } catch {
-        if (current()) setProfileLookup("error");
+        setLookupFailure(null);
+        setProfileLookup(person === null ? "empty" : "found");
+      } catch (failure) {
+        if (current()) {
+          const feedback = guestProfileLookupFailure(failure);
+          setLookupFailure(feedback);
+          setProfileLookup(feedback ? "error" : "");
+        }
+      } finally {
+        if (current()) lookupBusy.current = false;
       }
     }, 350);
     return () => {
       clearTimeout(timer);
       controller.abort();
       if (lookupController.current === controller) lookupController.current = null;
-      if (lookupVersion.current === version) lookupVersion.current += 1;
+      if (lookupVersion.current === version) { lookupVersion.current += 1; lookupBusy.current = false; }
     };
-  }, [citizenId, confirmation]);
+  }, [citizenId, confirmation, lookupAttempt]);
+  useEffect(() => {
+    if (!lookupFailure?.retryAt) { setRetryWait(0); return; }
+    let timer;
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((lookupFailure.retryAt - Date.now()) / 1000));
+      setRetryWait(remaining);
+      if (remaining > 0) timer = setTimeout(update, 1000);
+    };
+    update();
+    return () => clearTimeout(timer);
+  }, [lookupFailure?.retryAt]);
 
   const cancelProfileLookup = () => {
     lookupVersion.current += 1;
     lookupController.current?.abort();
     lookupController.current = null;
+    lookupBusy.current = false;
+  };
+  const retryProfileLookup = () => {
+    if (!lookupFailure || lookupBusy.current || saving || pendingRef.current || confirmation || !/^\d{13}$/.test(citizenId) || lookupFailure.retryAt > Date.now()) return;
+    cancelProfileLookup();
+    lookupBusy.current = true;
+    setProfileLookup("loading");
+    setLookupAttempt(previous => previous + 1);
   };
   const changeCitizenId = (event) => {
     const nextId = event.target.value.replace(/\D/g, "").slice(0, 13);
@@ -258,6 +293,8 @@ export default function GuestHealth() {
     setErrors({});
     setError("");
     setProfileLookup(/^\d{13}$/.test(nextId) ? "loading" : "");
+    setLookupFailure(null);
+    setLookupAttempt(0);
     requestKey.current = { fingerprint: "", id: "" };
   };
 
@@ -326,6 +363,7 @@ export default function GuestHealth() {
     }
     cancelProfileLookup();
     setProfileLookup("");
+    setLookupFailure(null);
     const profileData = {
       ...profile,
       firstName: profile.firstName.trim(),
@@ -427,6 +465,8 @@ export default function GuestHealth() {
     cancelProfileLookup();
     editedFields.current = new Set();
     setProfileLookup("");
+    setLookupFailure(null);
+    setLookupAttempt(0);
     setCitizenId("");
     setProfile({ ...EMPTY_PROFILE });
     setOtherDiseases("");
@@ -508,9 +548,13 @@ export default function GuestHealth() {
                         onChange={changeCitizenId}
                         placeholder="เลขบัตรประชาชน 13 หลัก"
                       />
-                      {profileLookup && <p className="field-hint" role="status" aria-live="polite" aria-atomic="true">
-                        {{ loading: "กำลังค้นหาข้อมูลส่วนตัว คุณสามารถกรอกข้อมูลต่อได้", found: "พบข้อมูลส่วนตัวแล้ว กรุณาตรวจสอบก่อนส่ง ช่องที่คุณแก้ไขจะคงค่าที่กรอกไว้", empty: "ไม่พบข้อมูลเดิม กรุณากรอกข้อมูลผู้รับบริการครั้งนี้", error: "ค้นหาข้อมูลส่วนตัวไม่สำเร็จ คุณสามารถกรอกข้อมูลเองและส่งได้" }[profileLookup]}
-                      </p>}
+                      {profileLookup && <div className={`guest-profile-lookup${profileLookup === "error" ? " guest-profile-lookup-error" : ""}`}>
+                        <p role="status" aria-live="polite" aria-atomic="true">{profileLookup === "error" ? lookupFailure?.message : { loading: "กำลังค้นหาข้อมูลส่วนตัว คุณสามารถกรอกข้อมูลต่อได้", found: "พบข้อมูลส่วนตัวแล้ว กรุณาตรวจสอบก่อนส่ง ช่องที่คุณแก้ไขจะคงค่าที่กรอกไว้", empty: "ไม่พบข้อมูลเดิม กรุณากรอกข้อมูลผู้รับบริการครั้งนี้" }[profileLookup]}</p>
+                        {lookupFailure && <div className="guest-profile-lookup-actions">
+                          <Button type="button" variant="secondary" loading={profileLookup === "loading"} disabled={saving || retryWait > 0 || lookupFailure.retryAt > Date.now()} onClick={retryProfileLookup}>ลองค้นหาอีกครั้ง</Button>
+                          {retryWait > 0 && <p aria-live="off">ลองใหม่ได้ในอีก {retryWait} วินาที</p>}
+                        </div>}
+                      </div>}
                     </Field>
                     {input("phone", "เบอร์โทรศัพท์ (ถ้ามี)", {
                       type: "tel",

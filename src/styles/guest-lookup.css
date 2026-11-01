@@ -1,0 +1,8 @@
+:root body .guest-profile-lookup { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid #9cb5aa; border-radius: 12px; background: #f2f8f5; color: #2c4d3d; }
+:root body .guest-profile-lookup-error { border-color: #967000; background: #fff7df; color: #654a00; }
+:root body .guest-profile-lookup p { margin: 0; font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+:root body .guest-profile-lookup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+:root body .guest-profile-lookup .btn { min-height: 48px; font-size: 1.125rem; }
+@media (max-width: 600px) {
+  :root body .guest-profile-lookup .btn { width: 100%; }
+}

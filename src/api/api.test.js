@@ -56,6 +56,40 @@ test("public guest personal lookup omits account identity and cookies even with 
   expect(getSessionSnapshot("patient").sessionId).toBe("patient-private");
 });
 
+test.each([
+  [401, {}],
+  [403, { code: "PASSWORD_CHANGE_REQUIRED" }],
+  [403, { code: "CSRF_INVALID" }],
+  [409, { code: "SESSION_CHANGED" }],
+])("a public lookup error %s %j never refreshes, clears or redirects either signed-in account", async (status, data) => {
+  saveAdminSession(session("admin", "staff-kept")); savePatientSession(session("patient", "patient-kept"));
+  const before = { admin: getSessionSnapshot("admin"), patient: getSessionSnapshot("patient") };
+  const previousPath = window.location.pathname + window.location.search + window.location.hash;
+  window.history.replaceState({}, "", "/guest");
+  const authEvent = jest.fn();
+  const events = ["carevigo:password-change-required", "carevigo:patient-expired", "carevigo:session-expired", "carevigo:sessions-changed"];
+  events.forEach(name => window.addEventListener(name, authEvent));
+  const calls = [];
+  API.defaults.adapter = async config => {
+    calls.push(config.url);
+    return config.url === "/auth/session" ? ok(config, session("patient", "patient-kept")) : fail(config, status, data);
+  };
+  try {
+    const error = await getGuestProfile("9999999999999").catch(failure => failure);
+    // Let any incorrectly triggered background session refresh finish too.
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(error).toMatchObject({ response: { status, data } });
+    expect(calls).toEqual(["/public/patient-profile"]);
+    expect(getSessionSnapshot("admin")).toBe(before.admin);
+    expect(getSessionSnapshot("patient")).toBe(before.patient);
+    expect(authEvent).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe("/guest");
+  } finally {
+    events.forEach(name => window.removeEventListener(name, authEvent));
+    window.history.replaceState({}, "", previousPath);
+  }
+});
+
 test.each(["admin", "patient"])("a deployed backend missing the %s session route is reported as unavailable service", async scope => {
   API.defaults.adapter = config => fail(config, 404, { message: "Route not found" });
   await restoreSession(scope, { force: true });
@@ -276,6 +310,33 @@ test("server identity conflicts refresh memory without replaying a mutation", as
   };
   await expect(API.patch("/auth/patient/me", {})).rejects.toMatchObject({ code: "ERR_CANCELED" }); await restoreSession("patient");
   expect(getSessionSnapshot("patient").sessionId).toBe("new"); expect(calls).toEqual(["/auth/patient/me", "/auth/session"]);
+});
+
+test("private CSRF failures still refresh only their account without replaying the write", async () => {
+  savePatientSession(session("patient", "old")); saveAdminSession(session("admin", "staff-kept"));
+  const admin = getSessionSnapshot("admin"); const calls = [];
+  API.defaults.adapter = async config => {
+    calls.push(config.url);
+    return config.url === "/auth/session" ? ok(config, session("patient", "new")) : fail(config, 403, { code: "CSRF_INVALID" });
+  };
+  await expect(API.patch("/auth/patient/me", {})).rejects.toMatchObject({ response: { status: 403, data: { code: "CSRF_INVALID" } } });
+  await restoreSession("patient");
+  expect(getSessionSnapshot("patient").sessionId).toBe("new");
+  expect(getSessionSnapshot("admin")).toBe(admin);
+  expect(calls).toEqual(["/auth/patient/me", "/auth/session"]);
+});
+
+test("private password-change requirements still notify routing without clearing either account", async () => {
+  savePatientSession(session("patient", "patient-kept")); saveAdminSession(session("admin", "staff-kept"));
+  const before = { patient: getSessionSnapshot("patient"), admin: getSessionSnapshot("admin") };
+  const required = jest.fn(); window.addEventListener("carevigo:password-change-required", required);
+  API.defaults.adapter = config => fail(config, 403, { code: "PASSWORD_CHANGE_REQUIRED" });
+  try {
+    await expect(API.get("/auth/patient/me")).rejects.toMatchObject({ response: { status: 403 } });
+    expect(required).toHaveBeenCalledTimes(1);
+    expect(getSessionSnapshot("patient")).toBe(before.patient);
+    expect(getSessionSnapshot("admin")).toBe(before.admin);
+  } finally { window.removeEventListener("carevigo:password-change-required", required); }
 });
 test("success identifying a different cookie session is discarded", async () => {
   savePatientSession(session("patient", "old")); API.defaults.adapter = async (config) => config.url === "/auth/session"

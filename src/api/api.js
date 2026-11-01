@@ -179,13 +179,14 @@ API.interceptors.response.use(
     ) {
       clearSession(error.config.sessionScope, { expired: true });
     }
-    if (error.response?.status === 409 && error.response?.data?.code === "SESSION_CHANGED" && !error.config?.sessionLogout) {
+    if (error.response?.status === 409 && error.response?.data?.code === "SESSION_CHANGED" &&
+        !error.config?.sessionLogout && !error.config?.sessionIndependent) {
       restoreSession(error.config.sessionScope, { force: true });
       return Promise.reject(new axios.CanceledError("Session changed"));
     }
-    if (error.response?.data?.code === "PASSWORD_CHANGE_REQUIRED")
+    if (error.response?.data?.code === "PASSWORD_CHANGE_REQUIRED" && !error.config?.sessionIndependent)
       window.dispatchEvent(new Event("carevigo:password-change-required"));
-    if (error.response?.data?.code === "CSRF_INVALID" && !error.config?.sessionLogout)
+    if (error.response?.data?.code === "CSRF_INVALID" && !error.config?.sessionLogout && !error.config?.sessionIndependent)
       restoreSession(error.config.sessionScope, { force: true });
     return Promise.reject(error);
   },
