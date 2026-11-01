@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -98,16 +98,18 @@ function GuestMeasurementSummary({ values, recordCount, submitted = false }) {
 
 function GuestSubmittedSummary({ summary, resultRef, onStartNew }) {
   const person = summary.profile;
-  return <section className="patient-profile-form" aria-label="สรุปข้อมูลที่ส่งครั้งนี้" ref={resultRef} tabIndex={-1}>
-    <section className="panel patient-guest-confirmation">
+  return <section className="patient-profile-form guest-submitted-summary" aria-label="สรุปข้อมูลที่ส่งครั้งนี้" ref={resultRef} tabIndex={-1}>
+    <section className="panel patient-guest-confirmation guest-submitted-header">
       <span className="patient-success-icon"><CheckCircle2 size={34} /></span>
       <h2>{summary.recordCount ? `ส่งข้อมูลเรียบร้อยแล้ว ${summary.recordCount} รายการ` : "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว"}</h2>
       <p>ระบบรับข้อมูลแล้ว สรุปด้านล่างเป็นข้อมูลที่คุณส่งในครั้งนี้</p>
-      <Button onClick={onStartNew}><Plus size={19} /> บันทึกรายการใหม่</Button>
     </section>
     <div className="guest-submitted-assessment">
       <p className="patient-server-assessment">ประเมินจากข้อมูลครั้งนี้ · รอเจ้าหน้าที่ตรวจสอบ</p>
       <ThaiCvRiskCard risk={summary.assessment} />
+    </div>
+    <div className="guest-summary-actions">
+      <Button onClick={onStartNew}><Plus size={19} /> บันทึกรายการใหม่</Button>
     </div>
     <section className="panel" aria-label="ข้อมูลการส่งครั้งนี้">
       <div className="panel-header"><h2>ข้อมูลการส่ง</h2></div>
@@ -154,6 +156,7 @@ export default function GuestHealth() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
+  const [focusNewEntry, setFocusNewEntry] = useState(false);
   const requestKey = useRef({ fingerprint: "", id: "" });
   const pendingRef = useRef(false);
   const activeRef = useRef(true);
@@ -167,6 +170,22 @@ export default function GuestHealth() {
       activeRef.current = false;
     };
   }, []);
+  useEffect(() => {
+    document.title = confirmation ? "สรุปผลการบันทึกสุขภาพ | Save Stroke" : "บันทึกสุขภาพโดยไม่เข้าสู่ระบบ | Save Stroke";
+  }, [confirmation]);
+  useLayoutEffect(() => {
+    if (!confirmation) return;
+    const node = resultRef.current;
+    node?.focus({ preventScroll: true });
+    node?.scrollIntoView?.({ block: "start", behavior: "auto" });
+  }, [confirmation]);
+  useLayoutEffect(() => {
+    if (!focusNewEntry || confirmation) return;
+    const field = document.getElementById("guest-citizenId");
+    field?.focus({ preventScroll: true });
+    field?.scrollIntoView?.({ block: "center", behavior: "auto" });
+    setFocusNewEntry(false);
+  }, [focusNewEntry, confirmation]);
   // Old receipt links open a fresh entry form; guest pages never fetch health data.
   useEffect(() => {
     if (location.search || location.hash) navigate("/guest", { replace: true });
@@ -277,7 +296,6 @@ export default function GuestHealth() {
       setValues(emptyHealthValues());
       setAgreements({});
       requestKey.current = { fingerprint: "", id: "" };
-      setTimeout(() => resultRef.current?.focus(), 0);
     } catch (requestError) {
       if (activeRef.current)
         setError(
@@ -342,6 +360,7 @@ export default function GuestHealth() {
     setErrors({});
     setError("");
     setConfirmation(null);
+    setFocusNewEntry(true);
     requestKey.current = { fingerprint: "", id: "" };
     pagesRef.current?.reset();
     navigate("/guest", { replace: true });
@@ -350,9 +369,9 @@ export default function GuestHealth() {
   return (
     <PublicLayout active="guest" guestOnly>
       <PageHeading
-        eyebrow="QUICK HEALTH RECORD"
-        title="บันทึกสุขภาพ ไม่ต้องเข้าสู่ระบบ"
-        description="กรอกข้อมูลผู้รับบริการ ผลตรวจสุขภาพกรอกได้ตามที่มี"
+        eyebrow={confirmation ? "SUBMISSION SUMMARY" : "QUICK HEALTH RECORD"}
+        title={confirmation ? "สรุปผลการบันทึกสุขภาพ" : "บันทึกสุขภาพ ไม่ต้องเข้าสู่ระบบ"}
+        description={confirmation ? "ระบบรับข้อมูลแล้ว ตรวจสอบผลประเมินและข้อมูลที่ส่งครั้งนี้" : "กรอกข้อมูลผู้รับบริการ ผลตรวจสุขภาพกรอกได้ตามที่มี"}
       />
       {confirmation ? (
         <GuestSubmittedSummary summary={confirmation} resultRef={resultRef} onStartNew={startNew} />

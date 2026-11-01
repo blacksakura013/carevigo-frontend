@@ -40,14 +40,28 @@
   padding: 7px 10px; border: 1px solid currentColor; border-radius: 8px;
   font-size: 1rem; font-weight: 600; line-height: 1.6;
 }
-:root body .patient-cv-legend .patient-cv-level-low { color: #14623d; background: #eaf8ef; }
-:root body .patient-cv-legend .patient-cv-level-moderate { color: #735000; background: #fff5cc; }
-:root body .patient-cv-legend .patient-cv-level-high { color: #a5232a; background: #fff0f0; }
+:root body .patient-cv-risk .patient-cv-legend .patient-cv-level-low { color: #14623d; background: #eaf8ef; }
+:root body .patient-cv-risk .patient-cv-legend .patient-cv-level-moderate { color: #735000; background: #fff5cc; }
+:root body .patient-cv-risk .patient-cv-legend .patient-cv-level-high { color: #a5232a; background: #fff0f0; }
 :root body .patient-cv-legend .is-current { border-width: 3px !important; }
 :root body .patient-cv-legend i { width: 10px; height: 10px; background: currentColor; flex-shrink: 0; }
 :root body .patient-cv-model { width: 100%; margin: 0; color: #374b49; font-size: 1rem; }
 :root body .patient-cv-risk-compact .patient-cv-score { width: 13rem; text-align: center; }
 :root body .patient-cv-risk-compact .patient-cv-score strong { font-size: clamp(2rem, 26cqi, 2.5rem); }
+
+/* Keep the saved confirmation short so the assessment is the first thing read. */
+:root body .guest-submitted-summary { scroll-margin-top: 16px; }
+:root body .patient-guest-confirmation.guest-submitted-header {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 6px 12px;
+  align-items: center; width: 100%; max-width: none; margin: 0;
+  padding: 16px 20px; text-align: left;
+}
+:root body .guest-submitted-header .patient-success-icon { width: 36px; height: 36px; grid-row: 1 / 3; }
+:root body .guest-submitted-header .patient-success-icon svg { width: 24px; height: 24px; }
+:root body .guest-submitted-header h2 { font-size: 1.25rem; line-height: 1.65; }
+:root body .guest-submitted-header p { grid-column: 2; max-width: none; font-size: 1.125rem; line-height: 1.7; }
+:root body .guest-summary-actions { display: flex; justify-content: flex-end; }
+:root body .guest-summary-actions > .btn { min-height: 56px; }
 
 /* Measurement categories retain their own named, clearly separated headings. */
 :root body .patient-health-card { --section-accent: #116b61; --section-tint: #eaf6f3; border-top: 5px solid var(--section-accent); }
@@ -71,6 +85,7 @@
   :root body .patient-cv-risk-content > .patient-cv-score { flex: 1 1 100%; width: 100%; margin: 0; }
   :root body .patient-cv-risk .patient-cv-legend { padding: 16px; }
   :root body .patient-cv-risk h2 { font-size: 1.25rem; }
+  :root body .guest-summary-actions > .btn { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   :root body .patient-cv-risk { animation: none; }

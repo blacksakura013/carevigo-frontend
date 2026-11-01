@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 import GuestHealth from "./GuestHealth";
 import { getGuestReceipt, getHealthByType, getPatientProfile, searchUser, submitGuestHealth } from "../api/api";
 
@@ -77,14 +78,51 @@ test("starting a new guest entry clears the accepted summary, personal fields, m
   await screen.findByRole("heading", { name: "ส่งข้อมูลเรียบร้อยแล้ว 1 รายการ" });
   expect(summary()).toHaveTextContent("128 mmHg");
   expect(riskCard()).toHaveTextContent("6.25%");
-  fireEvent.click(screen.getByRole("button", { name: "บันทึกรายการใหม่" }));
+  expect(screen.getByRole("heading", { level: 1, name: "สรุปผลการบันทึกสุขภาพ" })).toBeVisible();
+  expect(document.title).toBe("สรุปผลการบันทึกสุขภาพ | Save Stroke");
+  const startNew = screen.getByRole("button", { name: "บันทึกรายการใหม่" });
+  expect(riskCard().compareDocumentPosition(startNew) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await waitFor(() => expect(summary()).toHaveFocus());
+  userEvent.tab();
+  expect(startNew).toHaveFocus();
+  const previousScroll = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+  const scrollIntoView = jest.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
+  try {
+    userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(field(/^เลขบัตรประชาชน/)).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ block: "center", behavior: "auto" });
+  } finally {
+    if (previousScroll) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", previousScroll);
+    else delete HTMLElement.prototype.scrollIntoView;
+  }
   expect(screen.queryByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" })).not.toBeInTheDocument();
+  await waitFor(() => expect(field(/^เลขบัตรประชาชน/)).toHaveFocus());
+  expect(field(/^เลขบัตรประชาชน/)).toBeVisible();
+  expect(screen.getByText("ขั้นตอนที่ 1 จาก 7")).toBeVisible();
+  expect(screen.getByRole("heading", { level: 1, name: "บันทึกสุขภาพ ไม่ต้องเข้าสู่ระบบ" })).toBeVisible();
+  expect(document.title).toBe("บันทึกสุขภาพโดยไม่เข้าสู่ระบบ | Save Stroke");
   expect(field(/^ชื่อ/)).toHaveValue(""); expect(field(/^นามสกุล/)).toHaveValue(""); expect(field(/^เลขบัตรประชาชน/)).toHaveValue("");
   expect(field(/^ความดันตัวบน/)).toHaveValue(null); expect(field(/^ความดันตัวล่าง/)).toHaveValue(null);
   expect(field(/ฉันยอมรับ/)).not.toBeChecked(); expect(field(/ฉันยินยอมอย่างชัดแจ้ง/)).not.toBeChecked();
   expect(document.body).not.toHaveTextContent("สมใจ ดูแลสุขภาพ");
   expect(screen.queryByRole("region", { name: "ความเสี่ยงโรคหัวใจและหลอดเลือด" })).not.toBeInTheDocument();
   expect(document.body).not.toHaveTextContent("6.25%");
+  expect(submitGuestHealth).toHaveBeenCalledTimes(1);
+  noReadsOrStorage();
+});
+
+test("an accepted async response focuses the committed summary without waiting for a timer or leaving focus on the removed submit button", async () => {
+  jest.useFakeTimers();
+  let accepted;
+  submitGuestHealth.mockImplementationOnce(() => new Promise(resolve => { accepted = resolve; }));
+  mount(); readyPressure(); send();
+  expect(screen.queryByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" })).not.toBeInTheDocument();
+  await act(async () => { accepted({ status: 202, data: { data: { submissionId: "accepted", recordIds: ["bp"] } } }); });
+  expect(summary()).toHaveFocus();
+  expect(screen.getByRole("heading", { level: 1, name: "สรุปผลการบันทึกสุขภาพ" })).toBeVisible();
+  expect(document.title).toBe("สรุปผลการบันทึกสุขภาพ | Save Stroke");
+  expect(submitGuestHealth).toHaveBeenCalledTimes(1);
   noReadsOrStorage();
 });
 
