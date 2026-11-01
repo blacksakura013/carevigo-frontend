@@ -12,6 +12,25 @@ import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
 
 const originalAdapter = API.defaults.adapter;
 
+test.each(["admin", "patient"])("a deployed backend missing the %s session route is reported as unavailable service", async scope => {
+  API.defaults.adapter = config => fail(config, 404, { message: "Route not found" });
+  await restoreSession(scope, { force: true });
+  const snapshot = getSessionSnapshot(scope);
+  expect(snapshot.status).toBe("error");
+  expect(snapshot.profile).toBeNull();
+  expect(snapshot.error.code).toBe("SESSION_SERVICE_UNAVAILABLE");
+  expect(getApiError(snapshot.error)).toContain("ระบบเข้าสู่ระบบยังไม่พร้อมให้บริการ");
+  expect(getApiError(snapshot.error)).not.toContain("อินเทอร์เน็ต");
+});
+
+test("a missing verification route after login never creates an authenticated account", async () => {
+  API.defaults.adapter = config => config.url === "/auth/session"
+    ? fail(config, 404)
+    : Promise.resolve(ok(config, session("admin", "unverified-login")));
+  await expect(adminLogin("staff@example.test", "synthetic-password")).rejects.toMatchObject({ code: "SESSION_SERVICE_UNAVAILABLE" });
+  expect(hasAdminSession()).toBe(false);
+});
+
 test("a pre-reset session bootstrap cannot restore revoked staff identity when reset finishes while verification is loading", async () => {
   saveAdminSession(session("admin", "pre-reset-staff"));
   savePatientSession(session("patient", "patient-kept"));

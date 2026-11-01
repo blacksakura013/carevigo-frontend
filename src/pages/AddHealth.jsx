@@ -211,7 +211,7 @@ export function HealthEntrySummary({ values, outcomes = {} }) {
   return <section className="panel" aria-label="ตรวจสอบผลตรวจที่กรอกครั้งนี้">
     <div className="panel-header"><h2>ผลตรวจที่กรอกครั้งนี้</h2></div>
     <div className="panel-body">
-      {!selected.length && <p>ยังไม่ได้กรอกผลตรวจ ย้อนกลับไปกรอกอย่างน้อย 1 ส่วนก่อนบันทึก</p>}
+      {!selected.length && <p>ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ สามารถข้ามผลตรวจได้ทุกหมวด</p>}
       {selected.map(({ type, title, fields }) => <section className="form-review-section" key={type}>
         <h3>{title}</h3>
         <dl className="form-review-values">
@@ -513,8 +513,10 @@ export default function AddHealth() {
       ({ type }) => outcomes[type]?.status !== "success",
     );
     if (!toSave.length) {
-      setFormError("กรุณากรอกข้อมูลสุขภาพอย่างน้อย 1 ส่วนก่อนบันทึก");
-      pagesRef.current?.focusField("health-blood_pressure-systolic");
+      if (!selected.length) {
+        clearDraft();
+        navigate(patientMode ? "/" : "/admin");
+      }
       return;
     }
     const nextErrors = healthMeasurementErrors(
@@ -870,9 +872,9 @@ export default function AddHealth() {
               )}
             <FormPage id="review">
             <HealthEntrySummary values={values} outcomes={outcomes} />
-            <Agreements actor={patientMode ? "subject" : "staff"} value={agreements}
+            {selected.length > 0 && <Agreements actor={patientMode ? "subject" : "staff"} value={agreements}
               onChange={(next) => { setAgreements(next); setAgreementError(""); }}
-              error={agreementError} disabled={saving || allSaved} idPrefix="health-agreement" />
+              error={agreementError} disabled={saving || allSaved} idPrefix="health-agreement" />}
             <div className="patient-save-bar">
               <div className="patient-save-copy">
                 <ClipboardCheck size={22} />
@@ -880,12 +882,12 @@ export default function AddHealth() {
                   <strong>
                     {allSaved
                       ? "บันทึกครั้งนี้เรียบร้อยแล้ว"
-                      : "พร้อมบันทึกข้อมูลสุขภาพ"}
+                      : selected.length ? "พร้อมบันทึกข้อมูลสุขภาพ" : "ไม่ได้ระบุผลตรวจในครั้งนี้"}
                   </strong>
                   <p>
                     {allSaved
                       ? "ดูประวัติย้อนหลัง หรือเริ่มบันทึกครั้งใหม่ได้เลย"
-                      : "บันทึกเฉพาะส่วนที่กรอก ไม่จำเป็นต้องครบทุกส่วน"}
+                      : selected.length ? "บันทึกเฉพาะส่วนที่กรอก ไม่จำเป็นต้องครบทุกส่วน" : "ข้ามได้โดยไม่มีการเพิ่มบันทึกสุขภาพ"}
                   </p>
                 </div>
               </div>
@@ -917,7 +919,7 @@ export default function AddHealth() {
                     )}
                     {failures
                       ? "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง"
-                      : "บันทึกข้อมูลสุขภาพ"}
+                      : selected.length ? "บันทึกข้อมูลสุขภาพ" : "ข้ามการบันทึกครั้งนี้"}
                   </Button>
                 )}
               </div>

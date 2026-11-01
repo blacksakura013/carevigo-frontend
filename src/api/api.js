@@ -159,7 +159,7 @@ export function restoreSession(scope, { force = false } = {}) {
   }).catch((error) => {
     if (getSessionSnapshot(scope).version !== version || axios.isCancel(error)) return;
     if (error.response?.status === 401) clearSession(scope);
-    else failSessionLoad(scope, error, version);
+    else failSessionLoad(scope, error.response?.status === 404 || error.response?.status === 405 ? sessionServiceUnavailable(error) : error, version);
   }).finally(() => {
     if (restoring.get(scope) === pending) restoring.delete(scope);
   });
@@ -173,6 +173,12 @@ export function initializeSessions() {
     return status === "unknown" || status === "error" || status === "loading"
       ? restoreSession(scope) : Promise.resolve();
   }));
+}
+function sessionServiceUnavailable(cause) {
+  const error = new Error("ระบบเข้าสู่ระบบยังไม่พร้อมให้บริการ กรุณาติดต่อเจ้าหน้าที่ หรือบันทึกข้อมูลโดยไม่เข้าสู่ระบบ");
+  error.code = "SESSION_SERVICE_UNAVAILABLE";
+  error.cause = cause;
+  return error;
 }
 function cookieUnavailable(cause) {
   const error = new Error("เบราว์เซอร์ไม่สามารถใช้คุกกี้เข้าสู่ระบบได้ กรุณาอนุญาตคุกกี้ของเว็บไซต์นี้แล้วลองอีกครั้ง");
@@ -191,6 +197,7 @@ async function verifyLogin(scope, response) {
     return { ...response, data: { ...response.data, data: verified.data.data } };
   } catch (error) {
     if (axios.isCancel(error)) throw error;
+    if (error.response?.status === 404 || error.response?.status === 405) throw sessionServiceUnavailable(error);
     if (error.response?.status === 401 || error.code === "SESSION_COOKIE_UNAVAILABLE") {
       clearSession(scope);
       throw cookieUnavailable(error);
@@ -342,7 +349,7 @@ export function getApiError(
   error,
   fallback = "ดำเนินการไม่สำเร็จ กรุณาลองอีกครั้ง",
 ) {
-  if (error.code === "SESSION_COOKIE_UNAVAILABLE") return error.message;
+  if (["SESSION_COOKIE_UNAVAILABLE", "SESSION_SERVICE_UNAVAILABLE"].includes(error.code)) return error.message;
   if (error.response?.data?.code === "RESET_LINK_INVALID")
     return "ลิงก์ตั้งรหัสผ่านไม่ถูกต้อง หมดอายุ หรือถูกใช้แล้ว กรุณาขอลิงก์ใหม่";
   if (error.response?.data?.code === "CSRF_INVALID")

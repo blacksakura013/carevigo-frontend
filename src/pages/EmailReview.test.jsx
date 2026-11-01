@@ -35,6 +35,20 @@ function renderPage(path = "/review-email?token=opaque-token&action=approve") {
     </MemoryRouter>,
   );
 }
+
+test("profile-only submissions remain reviewable without displaying invented clinical measurements", async () => {
+  getEmailReview.mockResolvedValue({ data: { data: { ...data, profileOnly: true, recordCount: 0, records: [{
+    ...record, _id: "profile-submission", type: "profile", value: {},
+    submittedProfile: { firstName: "สมใจ", lastName: "ตัวอย่าง", gender: "female", smokingStatus: "never", birthDate: "19800101" },
+  }] } } });
+  renderPage();
+  expect(await screen.findByRole("heading", { name: "ข้อมูลผู้รับบริการ", exact: true })).toBeInTheDocument();
+  expect(screen.getByText("ไม่ได้ระบุผลตรวจสุขภาพ")).toBeInTheDocument();
+  expect(screen.getByText("สมใจ ตัวอย่าง")).toBeInTheDocument();
+  expect(screen.queryByText(/125 mmHg/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "ยืนยันการรับรอง" })).toBeEnabled();
+  expect(decideEmailReview).not.toHaveBeenCalled();
+});
 test("opening an email approve link only reads the scoped submission and requires a confirmation", async () => {
   renderPage();
   await screen.findByText("ผู้รับบริการ ทดสอบ");

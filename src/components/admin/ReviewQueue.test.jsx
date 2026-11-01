@@ -112,6 +112,21 @@ test("page selection includes only pending records and requires explicit confirm
   expect(await screen.findByText("ยืนยันแล้ว 2 รายการ")).toBeInTheDocument();
 });
 
+test("profile-only submissions can be inspected and selected as review units without clinical values", async () => {
+  getReviewQueue.mockResolvedValue(response([{ ...pending, _id: "profile-submission", type: "profile", value: {},
+    reviewEntity: "submission-profile", submittedProfile: { ...profile, gender: "female", smokingStatus: "never" } }]));
+  render(<ReviewQueue />);
+  expect(await screen.findByText("ไม่ได้ระบุผลตรวจสุขภาพ")).toBeInTheDocument();
+  const selected = screen.getByRole("checkbox", { name: /เลือกบันทึก.*ข้อมูลผู้รับบริการ/ });
+  expect(selected).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "ดูบันทึก" }));
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByText("หญิง")).toBeInTheDocument();
+  expect(within(dialog).getByText("ไม่เคยสูบบุหรี่")).toBeInTheDocument();
+  expect(within(dialog).queryByText(/130.*82.*mmHg/)).not.toBeInTheDocument();
+  expect(decideReviews).not.toHaveBeenCalled();
+});
+
 test("selecting all matching records freezes the cutoff and preserves cancellation reason", async () => {
   getReviewQueue.mockResolvedValue(response([pending, second], 67, true));
   render(<ReviewQueue />);

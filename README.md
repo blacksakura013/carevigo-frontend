@@ -59,9 +59,43 @@ must be updated together; static hosting alone does not provide the `/api` proxy
 See [MDN cookie/CORS behavior](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#third-party_cookies)
 and the [OWASP storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#local-storage).
 
+## Production login checks
+
+Deploy the current `CarevigoAPI` backend together with this frontend. Read-only
+checks on 1 November 2026 found the frontend reachable while the default API
+returned `404` for its cookie-session route. Deploying static frontend files
+alone cannot add that missing backend route.
+
+Check the configured API with requests that contain no account credentials:
+
+```powershell
+curl.exe -i "https://carevigoapi.onrender.com/api/health"
+curl.exe -i "https://carevigoapi.onrender.com/api/auth/session?scope=admin" `
+  -H "Origin: https://carevigo-frontend.onrender.com" `
+  -H "X-Carevigo-Session: cookie" `
+  -H "X-Carevigo-Scope: admin"
+```
+
+- Health should return `200` with `mongodb: "CONNECTED"`. A `503` requires fixing
+  the backend database connection before testing account credentials.
+- The anonymous session request should return `401`, which means the route is
+  available and there is no signed-in account. A `404` means the deployed API or
+  configured API address does not provide the required authentication contract;
+  deploy the updated backend and verify its service/start command.
+- Check `REACT_APP_API_URL` at frontend build time and backend
+  `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL`, `NODE_ENV`, and `COOKIE_SAME_SITE`.
+  The exact HTTPS frontend origin must be allowed with credentialed CORS.
+  Separate Render sites require `HttpOnly; Secure; SameSite=None` login cookies.
+  Confirm the browser accepts the cookie and its follow-up session request
+  succeeds; use the same-origin proxy or same-site domain setup above where
+  third-party cookies are blocked.
+
+Keep authentication in server-issued HttpOnly cookies. Manually adding tokens
+to localStorage or sessionStorage is not a supported login recovery method.
+
 ## Workflows
 
-- `/guest`: entry-only health recording without logging in. A successful batch shows an acknowledgment and a new-entry button, clears the submitted person's fields, and enters the staff review queue. This page does not fetch receipts, history, profiles, or CV results, and has no account navigation. Unchanged failed retries reuse the same request ID.
+- `/guest`: submit recipient details without logging in, with any number of health measurement categories, including none. Acceptance clears the editable fields and shows a read-only summary of this submission: masked citizen ID, entered details/results, submission time, pending status and Thai review deadline. The summary stays only in current-page memory; a new entry, full reload or navigating away inside the app clears it. This page does not fetch receipts, history, profiles, or CV results, and has no account navigation. Unchanged failed retries reuse the same request ID.
 - `/login`: personal login with citizen ID and password. Staff issue a random or manually entered six-digit initial code. The first login requires changing it. Patients can choose a six-digit code or a password of at least eight characters.
 - `/`: staff go to `/admin`, signed-in patients go to their personal dashboard, and anonymous visitors go to `/guest`. If both roles are signed in, staff take priority on this neutral entry route. Explicit patient pages and guest entry remain accessible under their normal permissions.
 - `/health`, `/history`, `/profile`, `/settings`: a patient's own records, editable profile, and password settings. Individual record URLs are checked against the signed-in account. Private reads are also authorized by the backend.
@@ -75,13 +109,17 @@ and the [OWASP storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/
 - `/terms` and `/privacy`: public service terms and the general privacy/PDPA notice;
   links open in a new tab from forms so unsent data remains in memory.
 
-Guest records can be confirmed or cancelled individually, in a selected group, or across all matching pending records. All-selection uses a server snapshot so later submissions are excluded. Remaining pending records are automatically confirmed at **23:59 on their submission date in Asia/Bangkok**. Cancellation preserves the record, reason, timestamps, and audit history. Email delivery uses a durable backend queue; production requires a running backend worker and configured email transport.
+Guest submissions can be confirmed or cancelled individually, in a selected group, or across all matching pending submissions. This also applies to profile-only submissions with zero measurements: they enter review and notification flows without creating invented health rows. All-selection uses a server snapshot so later submissions are excluded. Remaining pending submissions are automatically confirmed at **23:59 on their submission date in Asia/Bangkok**. Cancellation preserves the submission, reason, timestamps, and audit history. Email delivery uses a durable backend queue; production requires a running backend worker and configured email transport.
 
 Data entry uses one section per page: guest entry has seven steps, health recording
 has five, staff registration has six, and the personal profile has five. Next checks
 the current section; Back and previously visited steps preserve entered values.
-Empty optional measurement sections can be skipped. The final page summarizes the
-current draft and requires fresh agreements before saving. Enter on an earlier
+Every measurement category is optional and can be skipped. Guest submission
+with no measurements still saves the recipient details and requires fresh
+agreements; its accepted summary explicitly shows zero results. An authenticated
+health entry with no measurements skips saving and creates no health record.
+Entered categories still validate their required paired values. The final page
+summarizes the current draft and requires fresh agreements before a write. Enter on an earlier
 page advances the form without sending data. Validation opens and focuses the
 section containing the first error. Private health/profile drafts and the current
 step remain only in memory for the same verified session and clear when that
@@ -115,7 +153,7 @@ delete a health record.
 
 The server calculates the ten-year Thai CV risk using the [Ramathibodi total-cholesterol model](https://www.rama.mahidol.ac.th/cardio_vascular_risk/thai_cv_risk_score/), version 2.5. Green means below 10%, yellow means 10% through 20%, and red means above 20%, as required by this application. The official model's display limit is preserved as `>30%`.
 
-Gender, age, current smoking, confirmed diabetes history, systolic blood pressure, and total cholesterol are required. Missing inputs or patients outside the model's eligibility produce an explanation rather than a fabricated percentage. Pending and cancelled measurements do not contribute. BMI and cardiovascular risk are displayed separately. Approved guest assessments identify their submitted-profile source.
+A CV calculation requires gender, age, current smoking, confirmed diabetes history, systolic blood pressure, and total cholesterol. These are assessment requirements; a form can be submitted without health measurements. Missing inputs or patients outside the model's eligibility produce an explanation rather than a fabricated percentage. Pending and cancelled measurements do not contribute. BMI and cardiovascular risk are displayed separately. Approved guest assessments identify their submitted-profile source.
 
 ## Verification
 
@@ -125,7 +163,7 @@ npm test -- --watchAll=false --runInBand
 npm run build
 ```
 
-Component tests cover account isolation, session changes, temporary-code setup, registration failure recovery, conditional profile fields, partial health retries, guest idempotency, review selection and audit, email confirmation, and exact risk color boundaries using mocked APIs. All test patients are synthetic; tests never send real email.
+Component tests cover account isolation, session changes, temporary-code setup, registration failure recovery, conditional profile fields, optional/empty health entry, partial health retries, guest idempotency and one-time summaries, review selection and audit, email confirmation, and exact risk color boundaries using mocked APIs. All test patients are synthetic; tests never send real email.
 
 The deeper workflow browser harness additionally uses the production Express
 factory and an isolated real MongoDB with synthetic patients, intercepting every
@@ -162,8 +200,8 @@ The Save Stroke mark is an original vector brain inside a protective shield,
 shared by the website, browser tab and app metadata. Files in `public/` include
 `save-stroke-mark.svg`, the app carrier SVG, PNG icons at 192 and 512px, and a
 multi-size `favicon.ico`. Artwork contains no external resources or fonts.
-Existing API origins, request headers, cookies and session coordination identifiers
-remain compatible with the deployed backend.
+API origins remain configurable. The frontend requires the updated backend's
+cookie-session authentication contract described above.
 
 ## Motion and navigation
 

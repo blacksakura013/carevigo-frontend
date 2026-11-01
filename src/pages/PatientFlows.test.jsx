@@ -253,9 +253,9 @@ test("retries only failed health sections and omits blank optional measures", as
   });
   render(<AddHealth />);
   await screen.findByText("ผู้ทดสอบ");
-  acceptAgreements(true);
   fill("น้ำตาลขณะอดอาหาร (FBS)", "95");
   fill("ไขมันรวม (Total cholesterol)", "180");
+  acceptAgreements(true);
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
   await screen.findAllByText(/บันทึกถี่เกินกำหนด/);
   expect(screen.getByLabelText("น้ำตาลขณะอดอาหาร (FBS)")).toBeDisabled();
@@ -304,8 +304,8 @@ test("validates incomplete BP before sending and allows standalone BMI using ser
   });
   render(<AddHealth />);
   await screen.findByText("ผู้ทดสอบ");
-  acceptAgreements(true);
   fill("ความดันตัวบน (SYS)", "120");
+  acceptAgreements(true);
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
   await screen.findByText(/กรุณาตรวจสอบช่องที่ระบุด้านล่าง/);
   expect(addHealth).not.toHaveBeenCalled();
@@ -507,7 +507,7 @@ test.each([
   expect(screen.queryByRole("button", { name: /อัปเดตสถานะ|คัดลอกลิงก์/ })).not.toBeInTheDocument();
 });
 
-test("guest acknowledgement exposes no records and a new entry clears the previous person and consents", async () => {
+test("guest acknowledgement summarizes only the submitted entry and a new entry clears the previous person and consents", async () => {
   submitGuestHealth.mockResolvedValue({ data: { data: { submissionId: "submission-1", recordIds: ["bp-1"], receiptToken: "secret" } } });
   render(<GuestHealth />);
   fill("เลขบัตรประชาชน", "1234567890123");
@@ -518,6 +518,7 @@ test("guest acknowledgement exposes no records and a new entry clears the previo
   acceptAgreements();
   fireEvent.click(screen.getByRole("button", { name: "ส่งข้อมูลเพื่อรอตรวจสอบ" }));
   await screen.findByRole("heading", { name: "ส่งข้อมูลเรียบร้อยแล้ว 1 รายการ" });
+  expect(screen.getByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" })).toHaveTextContent("120 mmHg");
   expect(screen.queryByText(/1234567890123|private-receipt|secret|120\/80/)).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /ประวัติ|เข้าสู่/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: /ความเสี่ยง/ })).not.toBeInTheDocument();
@@ -590,9 +591,9 @@ test("records blood pressure without fabricating an unavailable pulse", async ()
   addHealth.mockResolvedValue({ data: { data: { recordId: "bp-1" } } });
   render(<AddHealth />);
   await screen.findByText("ผู้ทดสอบ");
-  acceptAgreements(true);
   fill("ความดันตัวบน (SYS)", "120");
   fill("ความดันตัวล่าง (DIA)", "80");
+  acceptAgreements(true);
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
   await screen.findByRole("button", { name: "บันทึกครั้งใหม่" });
   expect(addHealth).toHaveBeenCalledWith({

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 import {
   clearAdminSession,
@@ -71,6 +71,17 @@ test("staff recovery remains accessible when cookie bootstrap is unavailable", (
   expect(screen.getByRole("heading", { name: "ลืมรหัสผ่านเจ้าหน้าที่" })).toBeInTheDocument();
   expect(screen.getByLabelText(/อีเมลบัญชีเจ้าหน้าที่/)).toBeEnabled();
   expect(screen.queryByText(/ตรวจสอบการเข้าสู่ระบบไม่สำเร็จ/)).not.toBeInTheDocument();
+});
+
+test.each(["/login", "/admin/login"])("%s distinguishes missing deployed authentication service and can retry", async pathname => {
+  failSessionLoad("admin", Object.assign(new Error("service unavailable"), { code: "SESSION_SERVICE_UNAVAILABLE" }));
+  window.history.replaceState({}, "", pathname);
+  render(<App />);
+  expect(screen.getByText(/ระบบเข้าสู่ระบบยังไม่พร้อมให้บริการ/)).toBeInTheDocument();
+  expect(screen.queryByText(/ตรวจสอบอินเทอร์เน็ต/)).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "บันทึกโดยไม่เข้าสู่ระบบ" })).toHaveAttribute("href", "/guest");
+  fireEvent.click(screen.getByRole("button", { name: "ลองอีกครั้ง" }));
+  await waitFor(() => expect(screen.getByLabelText(pathname === "/login" ? /^เลขบัตรประชาชน/ : /^อีเมล/)).toBeEnabled());
 });
 
 test("the reset link survives session revalidation and revoked staff sessions do not interrupt reset success", async () => {

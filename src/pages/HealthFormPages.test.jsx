@@ -152,12 +152,13 @@ test("final guest validation reveals and focuses an earlier invalid personal fie
   expect(submitGuestHealth).not.toHaveBeenCalled();
 });
 
-test("a guest cannot submit a review with every optional measurement page left blank", async () => {
+test("a guest can submit profile and consent with every optional measurement page left blank", async () => {
+  submitGuestHealth.mockResolvedValueOnce({ status: 202, data: { data: { submissionId: "profile-only", recordIds: [], profileOnly: true } } });
   guest(); fillPersonal(); nextTimes(6); accept();
   fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
-  await waitFor(() => expect(field(/^ความดันตัวบน/)).toBeVisible());
-  await waitFor(() => expect(field(/^ความดันตัวบน/)).toHaveFocus());
-  expect(submitGuestHealth).not.toHaveBeenCalled();
+  await screen.findByRole("heading", { name: "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว" });
+  expect(submitGuestHealth).toHaveBeenCalledWith(expect.objectContaining({ records: [] }));
+  expect(screen.getByText("ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ")).toBeVisible();
 });
 
 test("health pages appear after profile lookup and cannot leave a partly filled pressure section", async () => {
@@ -200,8 +201,8 @@ test("health review retries only failed sections, preserves saved locks, and res
   expect(field(/^ความดันตัวบน/)).toHaveValue(null);
   expect(field(/^น้ำตาลขณะอดอาหาร/)).toHaveValue(null);
   nextTimes(4);
-  expect(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeChecked();
-  expect(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ })).not.toBeChecked();
+  expect(screen.getByRole("button", { name: "ข้ามการบันทึกครั้งนี้" })).toBeVisible();
+  expect(screen.queryByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeInTheDocument();
 });
 
 test("the same patient session restores the wizard page and draft values while a new session starts fresh", async () => {

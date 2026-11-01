@@ -66,7 +66,7 @@ export default function PatientLogin() {
     } catch (failure) {
       if (request !== attempt.current) return;
       setError(
-        failure.code === "SESSION_COOKIE_UNAVAILABLE"
+        ["SESSION_COOKIE_UNAVAILABLE", "SESSION_SERVICE_UNAVAILABLE"].includes(failure.code)
           ? getApiError(failure)
           : failure.response?.status === 429
           ? "ลองเข้าสู่ระบบถี่เกินไป กรุณารอสักครู่แล้วลองใหม่"

@@ -68,6 +68,57 @@ function newRequestId() {
   ).join("");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
+const acknowledgementTime = value => typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
+
+function GuestMeasurementSummary({ values, recordCount, submitted = false }) {
+  if (recordCount) return <HealthEntrySummary values={values} />;
+  return <section className="panel" aria-label="ผลตรวจสุขภาพที่ไม่ได้ระบุ">
+    <div className="panel-header"><h2>ผลตรวจสุขภาพครั้งนี้</h2></div>
+    <div className="panel-body"><p>{submitted ? "ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ" : "ยังไม่ได้ระบุผลตรวจสุขภาพ สามารถส่งข้อมูลผู้รับบริการได้โดยไม่กรอกผลตรวจ"}</p></div>
+  </section>;
+}
+
+function GuestSubmittedSummary({ summary, resultRef, onStartNew }) {
+  const person = summary.profile;
+  return <section className="patient-profile-form" aria-label="สรุปข้อมูลที่ส่งครั้งนี้" ref={resultRef} tabIndex={-1}>
+    <section className="panel patient-guest-confirmation">
+      <span className="patient-success-icon"><CheckCircle2 size={34} /></span>
+      <h2>{summary.recordCount ? `ส่งข้อมูลเรียบร้อยแล้ว ${summary.recordCount} รายการ` : "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว"}</h2>
+      <p>ระบบรับข้อมูลแล้ว สรุปด้านล่างเป็นข้อมูลที่คุณส่งในครั้งนี้</p>
+      <Button onClick={onStartNew}><Plus size={19} /> บันทึกรายการใหม่</Button>
+    </section>
+    <section className="panel" aria-label="ข้อมูลการส่งครั้งนี้">
+      <div className="panel-header"><h2>ข้อมูลการส่ง</h2></div>
+      <div className="panel-body">
+        <dl className="form-review-values">
+          <div><dt>สถานะเมื่อส่งข้อมูล</dt><dd><span className="badge badge-warning">รอเจ้าหน้าที่ตรวจสอบ</span></dd></div>
+          <div><dt>จำนวนผลตรวจสุขภาพที่ส่ง</dt><dd>{summary.recordCount} รายการ</dd></div>
+          <div><dt>{summary.submittedAt ? "เวลาที่ระบบรับข้อมูล" : "เวลาส่งจากอุปกรณ์นี้"}</dt>
+            <dd>{formatThaiDate(summary.submittedAt || summary.clientSubmittedAt, { withTime: true })} น. (เวลาไทย)</dd></div>
+          <div><dt>กำหนดยืนยันอัตโนมัติ</dt><dd>{summary.reviewDueAt
+            ? `${formatThaiDate(summary.reviewDueAt, { withTime: true })} น. (เวลาไทย)`
+            : "เวลา 23:59 น. ของวันที่ส่งข้อมูล (เวลาไทย)"}</dd></div>
+        </dl>
+        <p>หากเจ้าหน้าที่ยังไม่ตรวจสอบภายในกำหนด ระบบจะยืนยันอัตโนมัติ สรุปนี้แสดงข้อมูล ณ เวลาที่ส่ง</p>
+      </div>
+    </section>
+    <section className="panel" aria-label="ข้อมูลผู้รับบริการที่ส่งครั้งนี้">
+      <div className="panel-header"><h2>ข้อมูลผู้รับบริการที่ส่ง</h2></div>
+      <div className="panel-body"><dl className="form-review-values">
+        <div><dt>ชื่อผู้รับบริการ</dt><dd>{person.firstName} {person.lastName}</dd></div>
+        <div><dt>เลขบัตรประชาชน</dt><dd>{summary.maskedCitizenId}</dd></div>
+        <div><dt>เพศ</dt><dd>{{ male: "ชาย", female: "หญิง" }[person.gender] || "ไม่ระบุ"}</dd></div>
+        <div><dt>วันเกิด</dt><dd>{formatThaiDate(person.birthDate, { empty: "ไม่ระบุ" })}</dd></div>
+        {person.phone && <div><dt>เบอร์โทรศัพท์</dt><dd>{person.phone}</dd></div>}
+        <div><dt>สถานะการสูบบุหรี่</dt><dd>{{ never: "ไม่เคยสูบบุหรี่", current: "ยังสูบบุหรี่อยู่", former: `เลิกสูบบุหรี่แล้ว ${person.smokingQuitMonths} เดือน` }[person.smokingStatus] || "ไม่ระบุ"}</dd></div>
+        <div><dt>โรคประจำตัว</dt><dd>{person.chronicDiseases.join(" · ") || (person.chronicDiseasesConfirmed ? "ยืนยันว่าไม่มีโรคประจำตัว" : "ยังไม่ระบุ")}</dd></div>
+        <div><dt>การตรวจสอบโรคประจำตัว</dt><dd>{person.chronicDiseasesConfirmed ? "ตรวจสอบแล้ว" : "ยังไม่ได้ยืนยัน"}</dd></div>
+        {person.chronicDiseases.includes("มะเร็ง") && <div><dt>ชนิดหรือตำแหน่งมะเร็ง</dt><dd>{person.cancerDetails}</dd></div>}
+      </dl></div>
+    </section>
+    <GuestMeasurementSummary values={summary.values} recordCount={summary.recordCount} submitted />
+  </section>;
+}
 export default function GuestHealth() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -156,11 +207,6 @@ export default function GuestHealth() {
       pagesRef.current?.focusField(`guest-${Object.keys(invalid)[0]}`);
       return;
     }
-    if (!records.length) {
-      setError("กรุณากรอกข้อมูลสุขภาพอย่างน้อย 1 ส่วนก่อนส่ง");
-      pagesRef.current?.focusField("guest-blood_pressure-systolic");
-      return;
-    }
     if (!agreementsComplete(agreements)) {
       setAgreementError("กรุณาอ่านเงื่อนไขและให้ความยินยอมสำหรับการบันทึกครั้งนี้ก่อนส่งข้อมูล");
       pagesRef.current?.focusField("guest-agreement-terms");
@@ -180,6 +226,13 @@ export default function GuestHealth() {
       profileData.cancerDetails = profile.cancerDetails.trim();
     else delete profileData.cancerDetails;
     const payload = { citizenId, profile: profileData, records, agreements: agreementPayload(agreements) };
+    const submitted = {
+      maskedCitizenId: `•••••••••${citizenId.slice(-4)}`,
+      profile: { ...profileData, chronicDiseases: [...profileData.chronicDiseases] },
+      values: Object.fromEntries(Object.entries(values).map(([type, fields]) => [type, { ...fields }])),
+      recordCount: records.length,
+      clientSubmittedAt: new Date().toISOString(),
+    };
     const fingerprint = JSON.stringify(payload);
     if (requestKey.current.fingerprint !== fingerprint)
       requestKey.current = { fingerprint, id: newRequestId() };
@@ -194,8 +247,8 @@ export default function GuestHealth() {
       if (!activeRef.current) return;
       const data = response.data?.data;
       if (!data?.submissionId) throw new Error("Missing submission acknowledgement");
-      setConfirmation({ recordCount: data.recordIds?.length || records.length });
-      // Drop the submitted person and measurements from the public form immediately.
+      setConfirmation({ ...submitted, submittedAt: acknowledgementTime(data.submittedAt), reviewDueAt: acknowledgementTime(data.reviewDueAt) });
+      // Keep this entry's summary only in memory; clear the editable form now.
       setCitizenId("");
       setProfile({ ...EMPTY_PROFILE });
       setOtherDiseases("");
@@ -277,16 +330,10 @@ export default function GuestHealth() {
       <PageHeading
         eyebrow="QUICK HEALTH RECORD"
         title="บันทึกสุขภาพ ไม่ต้องเข้าสู่ระบบ"
-        description="กรอกผลตรวจที่คุณมี แล้วส่งให้เจ้าหน้าที่ตรวจสอบ"
+        description="กรอกข้อมูลผู้รับบริการ ผลตรวจสุขภาพกรอกได้ตามที่มี"
       />
       {confirmation ? (
-        <section className="panel patient-guest-confirmation" ref={resultRef} tabIndex={-1}>
-          <span className="patient-success-icon"><CheckCircle2 size={34} /></span>
-          <h2>ส่งข้อมูลเรียบร้อยแล้ว {confirmation.recordCount} รายการ</h2>
-          <p>ระบบรับข้อมูลแล้วและส่งให้เจ้าหน้าที่ตรวจสอบ</p>
-          <p>หากต้องการดูประวัติหรือแก้ไขข้อมูล กรุณาติดต่อเจ้าหน้าที่หรือใช้บัญชีส่วนตัวของคุณ</p>
-          <Button onClick={startNew}><Plus size={19} /> บันทึกรายการใหม่</Button>
-        </section>
+        <GuestSubmittedSummary summary={confirmation} resultRef={resultRef} onStartNew={startNew} />
       ) : (
         <>
           <div className="patient-guest-policy">
@@ -555,7 +602,7 @@ export default function GuestHealth() {
                 {profile.chronicDiseases.includes("มะเร็ง") && <div><dt>ชนิดหรือตำแหน่งมะเร็ง</dt><dd>{profile.cancerDetails}</dd></div>}
               </dl></div>
             </section>
-            <HealthEntrySummary values={values} />
+            <GuestMeasurementSummary values={values} recordCount={records.length} />
             <Agreements value={agreements} onChange={(next) => { setAgreements(next); setAgreementError(""); }}
               error={agreementError} disabled={saving} idPrefix="guest-agreement" />
             <div className="patient-save-bar">
@@ -563,7 +610,7 @@ export default function GuestHealth() {
                 <ShieldCheck size={23} />
                 <div>
                   <strong>ตรวจสอบข้อมูลก่อนส่ง</strong>
-                  <p>ส่งเฉพาะส่วนที่กรอก ทุกส่วนจะอยู่ในชุดรายการเดียวกัน</p>
+                  <p>ส่งข้อมูลผู้รับบริการพร้อมผลตรวจที่กรอก หากไม่มีผลตรวจสามารถส่งข้อมูลได้</p>
                 </div>
               </div>
               <Button type="submit" loading={saving}>

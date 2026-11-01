@@ -22,6 +22,7 @@ import {
 } from "../../api/api";
 import { Button, EmptyState, Field, Notice } from "../ui";
 import "../../styles/reviews.css";
+import SubmittedProfileDetails from "../SubmittedProfileDetails";
 
 const STATUS = {
   pending: ["รอยืนยัน", "warning"],
@@ -37,6 +38,7 @@ const SOURCES = {
   automatic: "ระบบยืนยันอัตโนมัติ",
 };
 const TYPE_LABELS = {
+  profile: "ข้อมูลผู้รับบริการ",
   blood_pressure: "ความดันโลหิต",
   sugar: "น้ำตาลในเลือด",
   cholesterol: "ไขมันในเลือด",
@@ -75,6 +77,7 @@ const maskId = (id) =>
   id ? `•••••••••${String(id).slice(-4)}` : "ไม่ระบุเลขประจำตัว";
 const statusFor = (row) => row.reviewStatus || "approved";
 function valueFor(row) {
+  if (row.type === "profile") return "ไม่ได้ระบุผลตรวจสุขภาพ";
   const value = row.value || {};
   if (row.type === "blood_pressure")
     return `${value.systolic ?? "—"}/${value.diastolic ?? "—"} mmHg`;
@@ -709,6 +712,7 @@ function ReviewRecordDetails({ row }) {
             </div>
           ))}
       </dl>
+      {row.type === "profile" && <SubmittedProfileDetails profile={profile} />}
       {statusFor(row) === "pending" && (
         <Notice>
           บันทึกนี้ยังรอยืนยัน

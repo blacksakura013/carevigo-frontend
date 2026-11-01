@@ -51,7 +51,9 @@ function SessionBoundary({ scope, children }) {
     return <PublicLayout><div className="panel empty-state" role="status">กำลังตรวจสอบการเข้าสู่ระบบ…</div></PublicLayout>;
   const failed = sessions.filter((session) => session.status === "error");
   if (failed.length)
-    return <PublicLayout><Notice tone="error">ตรวจสอบการเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง</Notice>
+    return <PublicLayout><Notice tone="error">{failed.some(session => session.error?.code === "SESSION_SERVICE_UNAVAILABLE")
+      ? "ระบบเข้าสู่ระบบยังไม่พร้อมให้บริการ กรุณาติดต่อเจ้าหน้าที่ หรือบันทึกข้อมูลโดยไม่เข้าสู่ระบบ"
+      : "ตรวจสอบการเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง"}</Notice>
       <Button variant="secondary" onClick={() => Promise.allSettled(failed.map((session) => restoreSession(session.scope, { force: true })))}>ลองอีกครั้ง</Button>
       <a className="btn btn-secondary" href="/guest">บันทึกโดยไม่เข้าสู่ระบบ</a></PublicLayout>;
   return children;

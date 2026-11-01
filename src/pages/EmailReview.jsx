@@ -14,7 +14,9 @@ import {
 import { decideEmailReview, getEmailReview } from "../api/api";
 import { Brand, Button, EmptyState, Notice } from "../components/ui";
 import "../styles/review-email.css";
+import SubmittedProfileDetails from "../components/SubmittedProfileDetails";
 const labels = {
+  profile: "ข้อมูลผู้รับบริการ",
   blood_pressure: "ความดันโลหิต",
   sugar: "น้ำตาลในเลือด",
   cholesterol: "ไขมันในเลือด",
@@ -29,6 +31,7 @@ function dateLabel(value) {
   return formatThaiDate(value, { withTime: true, empty: "ไม่ระบุ" });
 }
 function valueLabel(record) {
+  if (record.type === "profile") return "ไม่ได้ระบุผลตรวจสุขภาพ";
   const value = record.value || {};
   const display = {
     systolic: ["SYS", "mmHg"],
@@ -193,6 +196,7 @@ export default function EmailReview() {
                         <span className={`badge badge-${tone}`}>{label}</span>
                       </div>
                       <p>{valueLabel(record)}</p>
+                      {record.type === "profile" && <SubmittedProfileDetails profile={record.submittedProfile} />}
                       <small>
                         ส่งเมื่อ{" "}
                         {dateLabel(record.submittedAt || record.createdAt)}

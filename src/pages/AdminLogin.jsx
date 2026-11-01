@@ -61,7 +61,7 @@ export default function AdminLogin() {
       if (request !== attempt.current) return;
       const status = failure.response?.status;
       setError(
-        failure.code === "SESSION_COOKIE_UNAVAILABLE"
+        ["SESSION_COOKIE_UNAVAILABLE", "SESSION_SERVICE_UNAVAILABLE"].includes(failure.code)
           ? getApiError(failure)
           : !failure.response && failure.request
           ? "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง"
