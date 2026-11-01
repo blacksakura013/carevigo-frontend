@@ -1,0 +1,437 @@
+.portal-welcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  padding: 32px 36px;
+  background: #e8f2eb;
+  border: 1px solid #dbe9df;
+  border-radius: 19px;
+  margin-bottom: 24px;
+}
+.portal-welcome h2 {
+  font-size: 25px;
+  font-weight: 500;
+  margin-top: 14px;
+}
+.portal-welcome p {
+  color: #799080;
+  font-size: 13px;
+  margin-top: 9px;
+}
+.portal-welcome .btn {
+  margin-top: 23px;
+}
+.portal-welcome-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  border: 1px solid #cfe2d2;
+  border-radius: 50%;
+  color: #7ca58a;
+  margin-right: 20px;
+  flex-shrink: 0;
+}
+.portal-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 19px;
+  margin-bottom: 25px;
+}
+.portal-metric {
+  padding: 24px 22px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.portal-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: #edf5ef;
+  color: #6c9c7e;
+  flex-shrink: 0;
+}
+.portal-metric p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.portal-metric strong {
+  display: block;
+  font-size: 27px;
+  font-weight: 500;
+  margin-top: 5px;
+}
+.portal-metric strong small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.portal-metric .portal-date {
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.portal-profile-link:hover {
+  border-color: #abcdb5;
+}
+.portal-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 24px;
+}
+.portal-text-link {
+  font-size: 12px;
+  color: var(--brand);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.portal-recent-list {
+  padding: 2px 24px;
+}
+.portal-record {
+  padding: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.portal-record:last-child {
+  border: 0;
+}
+.portal-record > div {
+  flex: 1;
+}
+.portal-record strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.portal-record small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.portal-record b {
+  font-size: 13px;
+  font-weight: 500;
+}
+.portal-record > svg {
+  color: #a4b7aa;
+}
+.portal-measure-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 39px;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.portal-measure-icon.coral {
+  color: #d17e70;
+  background: #fdf0eb;
+}
+.portal-measure-icon.blue {
+  color: #658eba;
+  background: #edf4fc;
+}
+.portal-measure-icon.amber {
+  color: #c69f56;
+  background: #fcf4e4;
+}
+.portal-measure-icon.mint {
+  color: #5d977c;
+  background: #eaf6ef;
+}
+.portal-risk-legend {
+  padding: 22px 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.portal-risk-legend h3 {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.portal-risk-legend > span {
+  font-size: 12px;
+  color: #708a79;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.risk-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.risk-dot.low {
+  background: #1c9b61;
+}
+.risk-dot.moderate {
+  background: #dfac21;
+}
+.risk-dot.high {
+  background: #cf5151;
+}
+.portal-risk-legend a {
+  font-size: 12px;
+  color: var(--brand);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 5px;
+}
+.portal-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+  gap: 25px;
+  align-items: start;
+}
+.portal-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.portal-settings-form .btn {
+  align-self: flex-start;
+  min-width: 210px;
+  margin-top: 4px;
+}
+.portal-settings-note {
+  padding: 25px;
+  color: #70977f;
+  background: #edf5ec;
+  border: 1px solid #dce8d9;
+  border-radius: 16px;
+}
+.portal-settings-note h2 {
+  font-size: 16px;
+  margin-top: 16px;
+  margin-bottom: 10px;
+}
+.portal-settings-note p {
+  font-size: 12px;
+  line-height: 2;
+  color: #809780;
+  margin-top: 12px;
+}
+.portal-reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  font-size: 12px;
+  color: #6e8c7a;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.patient-session-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 7px 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.patient-session-card > span {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: #edf5ef;
+  color: #79a28b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.patient-session-card > div {
+  flex: 1;
+  min-width: 0;
+}
+.patient-session-card strong {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.patient-session-card small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.patient-login-visual {
+  height: 240px;
+  max-width: 330px;
+  position: relative;
+  margin: 30px auto 0;
+}
+.patient-login-heart {
+  position: absolute;
+  top: 10px;
+  left: calc(50% - 75px);
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b9d7c;
+  background: #ffffff8c;
+  border: 1px solid #ffffffab;
+  border-radius: 44px;
+  transform: rotate(-8deg);
+}
+.patient-login-visual > div {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 18px 22px;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px #305e3c09;
+  background: #fff;
+  color: #618a6d;
+  font-size: 13px;
+}
+.patient-login-visual small {
+  display: block;
+  font-size: 11px;
+  color: #8ea18d;
+  margin-top: 4px;
+}
+.patient-login-help {
+  padding: 20px;
+  background: #f5f8f3;
+  border: 1px solid #e8eee3;
+  border-radius: 12px;
+  margin-top: 25px;
+}
+.patient-login-help strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6f8d71;
+}
+.patient-login-help p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #93a18c;
+  margin-top: 7px;
+}
+.patient-login-help a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b957a;
+  font-size: 11px;
+  margin-top: 11px;
+}
+.access-form-wrap:has(.patient-login-help) {
+  max-width: 390px;
+}
+.public-sidebar {
+  overflow-y: auto;
+}
+.sidebar-bottom {
+  flex-shrink: 0;
+}
+@media (max-width: 1200px) {
+  .portal-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .portal-metrics > .panel:last-child {
+    grid-column: 1/-1;
+  }
+  .portal-overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .portal-risk {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .portal-risk-legend {
+    margin-top: 0;
+  }
+}
+@media (max-width: 700px) {
+  .portal-welcome {
+    padding: 25px;
+  }
+  .portal-welcome h2 {
+    font-size: 21px;
+  }
+  .portal-welcome-art {
+    display: none;
+  }
+  .portal-metrics {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .portal-metrics > .panel:last-child {
+    grid-column: auto;
+  }
+  .portal-metric {
+    padding: 20px;
+  }
+  .portal-overview-grid,
+  .portal-settings-grid,
+  .portal-risk {
+    grid-template-columns: 1fr;
+  }
+  .portal-record {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .portal-record > div {
+    min-width: 90px;
+  }
+  .portal-record b {
+    font-size: 12px;
+  }
+  .portal-recent-list {
+    padding: 0 19px;
+  }
+  .portal-text-link {
+    font-size: 11px;
+  }
+  .portal-recent .panel-header {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .portal-settings-form .btn {
+    width: 100%;
+    min-width: 0;
+  }
+  .portal-risk-legend {
+    margin-top: 0;
+  }
+}
+.patient-guest-entry {
+  display: flex;
+  width: 100%;
+  margin-top: 16px;
+}

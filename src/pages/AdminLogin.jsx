@@ -1,197 +1,203 @@
-// ======================================
-// src/pages/AdminLogin.jsx
-// ======================================
-
-import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";
-
-import { adminLogin } from "../api/api";
-
-import logo from "../logo.svg";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Activity,
+  Eye,
+  EyeOff,
+  HeartPulse,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import {
+  adminLogin,
+  clearAdminSession,
+  getApiError,
+  hasAdminSession,
+  saveAdminSession,
+} from "../api/api";
+import { Brand, Button, Field, Notice } from "../components/ui";
+import "../styles/access.css";
+import "../styles/admin-recovery.css";
+import { currentBuddhistYear } from "../utils/thaiDate";
+import LegalLinks from "../components/LegalLinks";
+import { getAdminDestination } from "../utils/navigation";
 
 export default function AdminLogin() {
-  // ======================================
-  // STATE
-  // ======================================
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // ======================================
-  // CHECK LOGIN
-  // ======================================
+  const [error, setError] = useState("");
+  const attempt = useRef(0);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const destination = getAdminDestination(location.state?.from);
   useEffect(() => {
-    const token = localStorage.getItem("adminAccessToken");
-
-    if (token) {
-      window.location.href = "/admin";
-    }
-  }, []);
-
-  // ======================================
-  // LOGIN
-  // ======================================
-  const handleLogin = async () => {
+    document.title = "เข้าสู่ระบบเจ้าหน้าที่ | Save Stroke";
+    return () => {
+      attempt.current += 1;
+    };
+  }, [navigate, destination]);
+  async function submit(event) {
+    event.preventDefault();
+    if (loading) return;
+    const request = ++attempt.current;
+    setLoading(true);
+    setError("");
     try {
-      if (!email.trim()) {
-        return Swal.fire({
-          icon: "warning",
-          title: "กรุณากรอก Email",
-          confirmButtonColor: "#16a34a",
-        });
+      const response = await adminLogin(email.trim().toLowerCase(), password, { isCurrent: () => request === attempt.current });
+      if (request !== attempt.current) return;
+      const data = response.data?.data;
+      saveAdminSession(data);
+      if (!hasAdminSession()) {
+        clearAdminSession();
+        throw new Error("invalid session");
       }
-
-      if (!password) {
-        return Swal.fire({
-          icon: "warning",
-          title: "กรุณากรอกรหัสผ่าน",
-          confirmButtonColor: "#16a34a",
-        });
-      }
-
-      setLoading(true);
-
-      const res = await adminLogin(
-        email.trim().toLowerCase(),
-        password
+      setPassword("");
+      navigate(destination, { replace: true });
+    } catch (failure) {
+      if (request !== attempt.current) return;
+      const status = failure.response?.status;
+      setError(
+        failure.code === "SESSION_COOKIE_UNAVAILABLE"
+          ? getApiError(failure)
+          : !failure.response && failure.request
+          ? "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง"
+          : status === 429
+            ? "เข้าสู่ระบบถี่เกินไป กรุณารอสักครู่แล้วลองใหม่"
+            : status >= 500
+              ? "เซิร์ฟเวอร์ยังไม่พร้อมให้บริการ กรุณาลองอีกครั้งภายหลัง"
+              : "เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอีเมลและรหัสผ่าน หรือติดต่อผู้ดูแลระบบ",
       );
-
-      const data = res.data.data;
-
-      localStorage.setItem(
-        "adminAccessToken",
-        data.accessToken
-      );
-
-      localStorage.setItem(
-        "adminRefreshToken",
-        data.refreshToken
-      );
-
-      localStorage.setItem(
-        "adminProfile",
-        JSON.stringify(data.admin)
-      );
-
-      await Swal.fire({
-        icon: "success",
-        title: "เข้าสู่ระบบสำเร็จ",
-        text: "กำลังเข้าสู่ระบบ...",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-
-      window.location.href = "/admin";
-
-    } catch (err) {
-      console.error(err);
-
-      Swal.fire({
-        icon: "error",
-        title: "เข้าสู่ระบบไม่สำเร็จ",
-        text:
-          err?.response?.data?.message ||
-          "Email หรือ Password ไม่ถูกต้อง",
-        confirmButtonColor: "#dc2626",
-      });
-
     } finally {
-      setLoading(false);
+      if (request === attempt.current) setLoading(false);
     }
-  };
-
-  // ======================================
-  // ENTER LOGIN
-  // ======================================
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
-  };
-
-  // ======================================
-  // UI
-  // ======================================
+  }
+  if (hasAdminSession()) return <Navigate to={destination} replace />;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-100 via-white to-green-50 flex items-center justify-center p-6">
-
-      <div className="w-full max-w-md bg-white rounded-[32px] shadow-2xl border border-gray-100 p-8">
-
-        {/* HEADER */}
-        <div className="text-center mb-8">
-
-          <div className="flex justify-center">
-
-            <img
-              src={logo}
-              alt="Save Stroke"
-              className="w-28 h-28 object-contain"
-            />
-
-          </div>
-
-          <h1 className="text-4xl font-bold text-gray-800 mt-4">
-            Admin Login
+    <div className="access-page">
+      <a className="skip-link" href="#login-form">
+        ข้ามไปเข้าสู่ระบบ
+      </a>
+      <section className="access-story">
+        <Link to="/" className="access-brand">
+          <Brand />
+        </Link>
+        <div className="access-story-content">
+          <p className="eyebrow">CARE THAT CONNECTS</p>
+          <h1>
+            เชื่อมต่อการดูแล
+            <br />
+            ใกล้ชิดทุกสุขภาพ
           </h1>
-
-          <p className="text-gray-500 mt-2">
-            Save Stroke Management System
+          <p>
+            พื้นที่ทำงานสำหรับทีมดูแลสุขภาพ
+            <br />
+            ติดตามข้อมูลและดูแลผู้รับบริการได้ในที่เดียว
           </p>
-
+          <div className="access-illustration" aria-hidden="true">
+            <div className="access-orbit orbit-one" />
+            <div className="access-orbit orbit-two" />
+            <span className="access-illustration-center">
+              <HeartPulse size={62} strokeWidth={1.2} />
+            </span>
+            <span className="access-float float-one">
+              <Activity size={22} />
+              <span>
+                ติดตามข้อมูลสุขภาพ<small>เห็นภาพรวมได้ชัดเจน</small>
+              </span>
+            </span>
+            <span className="access-float float-two">
+              <Users size={21} />
+              <span>
+                ดูแลอย่างต่อเนื่อง<small>ข้อมูลเชื่อมถึงกัน</small>
+              </span>
+            </span>
+            <span className="access-small-plus">+</span>
+          </div>
         </div>
-
-        {/* EMAIL */}
-        <div className="mb-5">
-
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Email
-          </label>
-
-          <input
-            type="email"
-            placeholder="admin@example.com"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none focus:ring-2 focus:ring-green-500 transition"
-          />
-
+        <div className="access-story-footer">
+          <span className="access-status-dot" /> SAVE STROKE HEALTH MANAGEMENT
         </div>
-
-        {/* PASSWORD */}
-        <div className="mb-8">
-
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Password
-          </label>
-
-          <input
-            type="password"
-            placeholder="********"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full rounded-2xl border border-gray-300 px-5 py-4 outline-none focus:ring-2 focus:ring-green-500 transition"
-          />
-
+      </section>
+      <main className="access-main">
+        <Link to="/" className="access-back">
+          <ArrowLeft size={16} /> กลับสู่หน้าผู้รับบริการ
+        </Link>
+        <div className="access-form-wrap" data-motion-enter="panel">
+          <span className="access-lock">
+            <ShieldCheck size={28} strokeWidth={1.5} />
+          </span>
+          <p className="eyebrow">WELCOME BACK</p>
+          <h2>เข้าสู่ระบบเจ้าหน้าที่</h2>
+          <p className="access-description">
+            เริ่มต้นดูแลสุขภาพผู้รับบริการของคุณ
+          </p>
+          {location.state?.expired && (
+            <Notice tone="warning">
+              เซสชันหมดอายุ กรุณาเข้าสู่ระบบเพื่อใช้งานต่อ
+            </Notice>
+          )}
+          <form id="login-form" onSubmit={submit} className="access-form">
+            {error && <Notice tone="error">{error}</Notice>}
+            <Field label="อีเมล" id="admin-email" required>
+              <input
+                id="admin-email"
+                className="input"
+                type="email"
+                autoComplete="username"
+                required
+                maxLength={254}
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+            </Field>
+            <Field label="รหัสผ่าน" id="admin-password" required>
+              <div className="password-input">
+                <input
+                  id="admin-password"
+                  className="input"
+                  type={visible ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  placeholder="กรอกรหัสผ่านของคุณ"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={visible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                  aria-pressed={visible}
+                  onClick={() => setVisible(!visible)}
+                >
+                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </Field>
+            <Link to="/admin/forgot-password" className="admin-forgot-password-link">ลืมรหัสผ่านเจ้าหน้าที่?</Link>
+            <Button type="submit" loading={loading}>
+              เข้าสู่ระบบ {!loading && <ArrowRight size={17} />}
+            </Button>
+          </form>
+          <p className="access-support">
+            หากเข้าใช้งานไม่ได้ กรุณาติดต่อผู้ดูแลระบบของหน่วยงาน
+            <br />
+            <Link to="/help">
+              อ่านคู่มือการใช้งาน <ArrowRight size={12} />
+            </Link>
+          </p>
         </div>
-
-        {/* LOGIN BUTTON */}
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white py-4 rounded-2xl font-semibold shadow-lg transition"
-        >
-          {loading
-            ? "กำลังเข้าสู่ระบบ..."
-            : "เข้าสู่ระบบ"}
-        </button>
-
-      </div>
-
+        <footer className="access-footer">
+          <LegalLinks />
+          © {currentBuddhistYear()} Save Stroke · ใส่ใจคุณในทุกวัน
+        </footer>
+      </main>
     </div>
   );
 }

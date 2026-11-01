@@ -1,0 +1,128 @@
+/* Brief, predictable movement supports reading and confirms an action. */
+:root {
+  --motion-duration-fast: 140ms;
+  --motion-duration-normal: 220ms;
+  --motion-duration-slow: 280ms;
+  --motion-ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@keyframes save-stroke-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes save-stroke-feedback-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes save-stroke-panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes save-stroke-drawer-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Route content only fades: fixed descendants keep their viewport anchor. */
+  :root body [data-motion-content],
+  :root body [data-motion-enter="fade"] {
+    animation: save-stroke-fade-in var(--motion-duration-normal) var(--motion-ease-out);
+  }
+
+  :root body :is([data-motion-feedback], .notice, .patient-guest-confirmation,
+    .patient-success, .patient-saved-section) {
+    animation: save-stroke-feedback-in 180ms var(--motion-ease-out);
+  }
+
+  :root body :is([data-motion-enter="panel"], .buddhist-calendar, .review-dialog) {
+    animation: save-stroke-panel-in var(--motion-duration-normal) var(--motion-ease-out);
+  }
+
+  :root body :is(.sidebar-backdrop, .admin-nav-backdrop,
+    .admin-drawer-overlay, .review-dialog-overlay) {
+    animation: save-stroke-fade-in var(--motion-duration-fast) var(--motion-ease-out);
+  }
+
+  :root body .admin-member-drawer {
+    animation: save-stroke-drawer-in var(--motion-duration-slow) var(--motion-ease-out);
+  }
+
+  :root body :is(.btn, .icon-btn, .admin-icon-button,
+    .buddhist-date-trigger, .buddhist-calendar button) {
+    transition:
+      background-color var(--motion-duration-fast) var(--motion-ease-standard),
+      border-color var(--motion-duration-fast) var(--motion-ease-standard),
+      color var(--motion-duration-fast) var(--motion-ease-standard),
+      box-shadow var(--motion-duration-fast) var(--motion-ease-standard),
+      transform var(--motion-duration-fast) var(--motion-ease-out);
+  }
+
+  :root body :is(.nav-item, .admin-nav-item, .admin-text-button,
+    .admin-table-action, .legal-link, .staff-link, .portal-text-link,
+    .patient-history-filters button) {
+    transition:
+      background-color var(--motion-duration-fast) var(--motion-ease-standard),
+      border-color var(--motion-duration-fast) var(--motion-ease-standard),
+      color var(--motion-duration-fast) var(--motion-ease-standard),
+      box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+  }
+
+  /* Moving the whole label by one pixel preserves its size and hit area. */
+  :root body :is(.btn, .icon-btn, .admin-icon-button,
+    .buddhist-date-trigger):active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(1px);
+  }
+
+  :root body .patient-success-icon {
+    animation: save-stroke-feedback-in var(--motion-duration-slow) var(--motion-ease-out);
+  }
+
+  :root body .patient-cancer-details {
+    animation: save-stroke-fade-in var(--motion-duration-fast) var(--motion-ease-out);
+  }
+
+  :root body :is(.patient-health-card, .patient-steps li, .patient-steps li > span) {
+    transition:
+      background-color var(--motion-duration-fast) var(--motion-ease-standard),
+      border-color var(--motion-duration-fast) var(--motion-ease-standard),
+      color var(--motion-duration-fast) var(--motion-ease-standard);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :root body .btn:hover:not(:disabled):not([aria-disabled="true"]):not(:active) {
+      transform: translateY(-1px);
+    }
+  }
+
+  @media (max-width: 900px) {
+    :root body .public-sidebar {
+      transition:
+        transform var(--motion-duration-normal) var(--motion-ease-out),
+        visibility 0s;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    :root body .admin-sidebar {
+      transition:
+        transform var(--motion-duration-normal) var(--motion-ease-out),
+        visibility 0s;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Stop repeating spinners and shimmer too; tiny durations still repeat. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

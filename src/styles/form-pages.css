@@ -1,0 +1,35 @@
+.form-pages { min-width: 0; }
+:root body [data-form-page][hidden] { display: none !important; }
+.form-pages-progress { margin-bottom: 24px; }
+.form-pages-progress ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }
+.form-pages-progress li { min-width: 0; }
+.form-pages-progress button { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 56px; padding: 10px 12px; border: 1px solid #d7e4df; border-radius: 12px; background: #fff; color: #43625b; font: inherit; text-align: left; overflow-wrap: anywhere; }
+.form-pages-progress button:disabled { cursor: default; opacity: 1; color: #65766f; background: #f5f7f5; }
+.form-pages-progress .is-current button { color: #135f51; background: #eaf5ef; border-color: #337e68; box-shadow: inset 0 0 0 1px #337e68; }
+.form-pages-step-number { flex: 0 0 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #e9eeea; font-weight: 600; }
+.is-current .form-pages-step-number, .is-complete .form-pages-step-number { color: #fff; background: #176d59; }
+.form-pages-heading { margin-bottom: 24px; scroll-margin-top: 20px; }
+.form-pages-heading h2 { margin: 4px 0 8px; font-size: clamp(1.5rem, 3vw, 1.8rem); line-height: 1.6; }
+.form-pages-heading h2:focus { outline: none; }
+.form-pages-heading p { margin: 0; line-height: 1.8; color: #47675e; }
+.form-pages-counter { font-weight: 500; }
+.form-pages-navigation { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 24px 0 8px; border-top: 1px solid #dbe6df; margin-top: 24px; }
+:root body .form-pages .form-pages-navigation button.btn { min-height: 52px; min-width: 140px; font-size: 1.125rem; }
+.form-pages-error { padding: 16px 20px; color: #963d35; background: #fff4f1; border: 1px solid #eac0b8; border-radius: 12px; line-height: 1.8; }
+.form-page { min-width: 0; }
+.form-page > .panel + .panel { margin-top: 24px; }
+.form-pages-summary, .form-review-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px 24px; margin: 0; }
+.form-pages-summary > div, .form-review-values > div { min-width: 0; padding: 12px 0; border-bottom: 1px solid #e0e8e2; }
+.form-pages-summary dt, .form-review-values dt { color: #4e6a60; line-height: 1.8; }
+.form-pages-summary dd, .form-review-values dd { margin: 4px 0 0; color: #203f35; overflow-wrap: anywhere; line-height: 1.8; font-size: 1.125rem; }
+.form-review-section + .form-review-section { margin-top: 24px; }
+.form-review-section > h3 { margin: 0 0 8px; font-size: 1.25rem; line-height: 1.8; }
+.form-pages-progress button:focus-visible, .form-pages-navigation button:focus-visible { outline: 3px solid #197b65; outline-offset: 3px; }
+@keyframes form-page-in { from { opacity: .75; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) { [data-form-page]:not([hidden]) { animation: form-page-in 220ms cubic-bezier(.2,.7,.2,1); } }
+@media (prefers-reduced-motion: reduce) { [data-form-page] { animation: none !important; } }
+@media (max-width: 600px) {
+  .form-pages-progress ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .form-pages-progress button { padding: 10px 8px; gap: 7px; font-size: 1.125rem; }
+  :root body .form-pages .form-pages-navigation button.btn { flex: 1 1 120px; min-width: 0; }
+}

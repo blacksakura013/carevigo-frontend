@@ -1,0 +1,607 @@
+/* Shared reading and touch sizes. Scoped specificity keeps page styles from
+   shrinking essential Thai text at narrow breakpoints. */
+:root:root {
+  --muted: #48635e;
+  --danger: #a32e35;
+}
+
+:root body {
+  font-size: 1.125rem;
+  line-height: 1.75;
+}
+
+:root body :is(h1, .admin-main .page-heading h1) {
+  font-size: clamp(1.75rem, 2.6vw, 2.25rem);
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+:root body h2 {
+  font-size: 1.375rem;
+  line-height: 1.6;
+}
+
+:root body h3 {
+  font-size: 1.1875rem;
+  line-height: 1.6;
+}
+
+:root body :is(.page-description, .page-heading p, .panel-header p,
+  .patient-panel-title p, .patient-prepare p, .patient-prepare li,
+  .patient-privacy, .patient-bottom-note, .patient-risk-profile-heading p,
+  .patient-confirm-history, .patient-cv-risk p, .patient-cv-missing,
+  .patient-complete-profile, .patient-guest-policy p, .patient-guest-profile-note,
+  .patient-guest-link p, .patient-form-footer > p, .patient-existing p,
+  .patient-success > p, .patient-card-description, .patient-section-error,
+  .patient-server-assessment, .patient-save-copy p, .patient-history-caption,
+  .portal-welcome p, .portal-settings-note p, .patient-login-help p,
+  .access-description, .access-story-content > p:not(.eyebrow), .access-support,
+  .help-hero p, .help-step p, .help-faq details p, .help-contact p,
+  .legal-document p, .legal-document li, .legal-agreement-choice label,
+  .review-policy-banner p, .review-bulk-actions p, .review-final-reason p,
+  .review-settings-policy p, .review-email-status p, .notice, .empty-state p) {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+:root body :is(.field label, .patient-health-card .field label,
+  .patient-condition-fieldset legend, .patient-confirm-history > span,
+  .legal-agreements legend, .help-faq summary) {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  min-height: 0;
+}
+
+:root body :is(.input, select.input, textarea.input) {
+  min-height: 52px;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  padding: 11px 14px;
+}
+
+:root body .patient-health-card .patient-unit-input > .input {
+  min-height: 52px;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+:root body .patient-unit-input > .input {
+  padding-right: 100px;
+}
+
+:root body textarea.input {
+  min-height: 120px;
+  resize: vertical;
+}
+
+:root body input::placeholder,
+:root body textarea::placeholder {
+  color: #627770;
+  opacity: 1;
+}
+
+:root body :is(.btn, .admin-main .btn, .patient-person-strip > .btn,
+  .patient-history-panel .panel-header .btn, .admin-account-provision .btn) {
+  min-height: 48px;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  padding: 11px 18px;
+  white-space: normal;
+  text-align: center;
+}
+
+:root body :is(.icon-btn, .admin-icon-button, .admin-table-action, .admin-pagination .btn,
+  .admin-page-number) {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  padding: 8px;
+}
+
+:root body :is(.password-input .input) {
+  padding-right: 58px;
+}
+
+:root body .password-input .icon-btn {
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+:root body :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #16766b;
+  outline-offset: 3px;
+}
+
+/* Secondary details remain readable without competing with results/headings. */
+:root body :is(.field-hint, .field-error, .badge, .admin-main .badge,
+  .brand small, .eyebrow, .workspace-label, .workspace-label small,
+  .nav-caption, .nav-item, .sidebar-care-note strong, .sidebar-care-note p,
+  .sidebar-footer, .breadcrumb, .staff-link, .content-footer,
+  .patient-steps li, .patient-steps li > span, .patient-section-number,
+  .patient-condition-fieldset legend .muted, .patient-condition,
+  .patient-confirm-history small, .patient-cv-score > span, .patient-cv-legend,
+  .patient-cv-record, .patient-risk-profile-source, .patient-receipt-id,
+  .patient-review-meta > small, .patient-review-reason, .patient-review-audit,
+  .patient-review-audit summary, .patient-review-audit strong,
+  .patient-review-audit span, .patient-review-audit li > p,
+  .patient-person-strip .muted, .patient-unit-input > span,
+  .patient-health-card .patient-unit-input > span, .patient-saved-section,
+  .patient-bmi-result > span, .patient-bmi-result small,
+  .patient-history-categories > div, .patient-history-overview .muted,
+  .patient-history-overview strong small, .patient-history-overview .patient-overview-date,
+  .patient-history-panel .panel-header p, .patient-history-filters > button,
+  .patient-history-table, .patient-history-table th, .patient-record-date,
+  .patient-history-table td > small, .patient-record-type,
+  .patient-record-measures > div > span, .patient-record-measures small,
+  .patient-record-bmi, .patient-record-assessment, .patient-history-footer p,
+  .patient-history-loading > span, .patient-history-table td::before,
+  .portal-metric p, .portal-metric strong small, .portal-metric .portal-date,
+  .portal-text-link, .portal-record small, .portal-risk-legend > span,
+  .portal-risk-legend a, .portal-reveal, .patient-session-card small,
+  .patient-login-visual > div, .patient-login-visual small, .patient-login-help a,
+  .access-back, .access-footer, .access-story-footer, .access-float,
+  .access-float small, .legal-links, .legal-agreement-description,
+  .legal-agreement-error, .legal-document .legal-version,
+  .review-selection-toolbar, .review-all-selection, .review-loading,
+  .review-timestamp, .review-detail-identity p, .review-detail-grid dt,
+  .review-detail-grid dd, .review-audit-list strong, .review-audit-list div > span,
+  .review-audit-list p, .review-outbox-grid span,
+  .admin-workspace-label, .admin-nav-label, .admin-nav-item, .admin-nav-count,
+  .admin-sidebar-help > strong, .admin-sidebar-help p, .admin-sidebar-help a,
+  .admin-sidebar-account strong, .admin-sidebar-account > div > span,
+  .admin-avatar, .admin-breadcrumb, .admin-today, .admin-welcome-label,
+  .admin-welcome p, .admin-welcome button, .admin-stat-label, .admin-stat-note,
+  .admin-chart-key, .admin-chart-grid, .admin-chart-column > strong,
+  .admin-chart-column > span, .admin-chart-footer, .admin-verification-number > span,
+  .admin-verification-line, .admin-verification-line strong,
+  .admin-verification-line small, .admin-heading-count, .admin-updated,
+  .admin-table th, .admin-table td, .admin-person div > span,
+  .admin-record-value span, .admin-cell-note, .admin-text-button,
+  .admin-pagination, .admin-clinical-note, .admin-footer,
+  .admin-queue-banner p, .admin-account-profile > .muted, .admin-settings-note,
+  .admin-drawer-header .eyebrow, .admin-member-identity > span:last-child,
+  .admin-detail-grid dt, .admin-detail-grid dd, .admin-detail-section-title .badge,
+  .admin-member-history-row div > span, .admin-drawer-actions .notice,
+  .admin-risk-card > strong small, .admin-risk-card > span:last-of-type,
+  .admin-risk-overview-footer, .admin-risk-description, .admin-risk-date,
+  .admin-member-history-row .admin-cv-result .badge, .admin-issued-account dt,
+  .admin-issued-account dd, .admin-account-handover, .admin-settings-info-grid p,
+  .admin-model-reference, .admin-stat-card .admin-stat-label) {
+  font-size: 1rem;
+  line-height: 1.7;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root body :is(.patient-panel-title h2, .patient-health-card .patient-panel-title h2,
+  .patient-risk-profile-heading h3, .patient-prepare h2, .patient-guest-policy h2,
+  .patient-guest-link h2, .patient-cv-risk-compact h2, .portal-risk-legend h3,
+  .portal-settings-note h2, .help-contact h3, .legal-document h2,
+  .admin-main .section-heading, .admin-detail-heading,
+  .admin-settings-info-grid h3, .review-policy-banner strong,
+  .review-bulk-actions strong, .review-final-reason strong,
+  .review-settings-policy strong, .review-email-status strong) {
+  font-size: 1.25rem;
+  line-height: 1.65;
+}
+
+:root body :is(.patient-person-strip strong, .patient-save-copy strong,
+  .patient-record-measures strong, .patient-record-bmi strong,
+  .portal-record strong, .portal-record b, .patient-session-card strong,
+  .patient-login-help strong, .admin-person strong, .admin-record-value strong,
+  .admin-member-history-row strong, .admin-member-history-row > b,
+  .admin-account-profile > strong, .admin-queue-banner strong) {
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+:root body :is(.access-description, .access-support, .access-footer,
+  .access-back, .access-story-content > p:not(.eyebrow), .access-story-footer,
+  .access-float small, .help-hero p, .help-contact p, .help-contact h3,
+  .portal-welcome p, .portal-settings-note p, .portal-risk-legend > span,
+  .patient-login-help p, .patient-login-help strong, .patient-login-help a,
+  .patient-login-visual small, .patient-card-description, .patient-save-copy p,
+  .patient-cv-risk p, .patient-cv-legend, .patient-server-assessment,
+  .admin-stat-label, .admin-stat-note, .admin-chart-footer,
+  .admin-cell-note, .admin-person div > span, .admin-clinical-note,
+  .admin-footer, .admin-pagination, .review-policy-banner p) {
+  color: var(--muted);
+}
+
+:root body .admin-date-cell {
+  color: var(--muted) !important;
+  font-size: 1rem !important;
+}
+
+:root body .patient-cv-missing {
+  font-size: 1.125rem !important;
+}
+
+:root body :is(.badge-warning, .patient-cv-record-moderate) {
+  color: #795916;
+}
+
+:root body :is(.badge-success, .patient-cv-record-low) {
+  color: #146344;
+}
+
+:root body :is(.badge-danger, .patient-cv-record-high) {
+  color: #a33235;
+}
+
+:root body .badge-neutral {
+  color: var(--muted);
+}
+
+:root body .patient-cv-risk-moderate .patient-cv-score strong {
+  color: #876315;
+}
+
+:root body .review-policy-banner strong {
+  color: #795916;
+}
+
+:root body :is(.page-heading > div > .eyebrow, .page-heading > .eyebrow,
+  .access-form-wrap > .eyebrow, .access-story-content > .eyebrow,
+  .patient-health-intro .eyebrow, .patient-card-eyebrow) {
+  display: none;
+}
+
+/* Let larger text reflow rather than clip names or force the page sideways. */
+:root body :is(.main-shell, .admin-main, .main-content, .page-heading > div,
+  .field, .panel-header > div, .patient-panel-title > div,
+  .patient-guest-policy > div, .patient-save-copy > div,
+  .portal-metric > div, .portal-record > div, .access-main,
+  .admin-detail-grid > div, .admin-person > div, .review-policy-banner > div) {
+  min-width: 0;
+}
+
+:root body :is(.page-description, .page-heading p, .panel-header p,
+  .patient-panel-title p, .patient-session-card strong, .admin-detail-grid dd,
+  .admin-member-identity > span:last-child, .review-detail-grid dd,
+  .admin-issued-account dd, .content-footer, .admin-footer) {
+  overflow-wrap: anywhere;
+}
+
+:root body .brand {
+  min-width: 0;
+  white-space: normal;
+}
+
+:root body .brand > span:last-child {
+  min-width: 0;
+}
+
+:root body .patient-panel-title > div {
+  flex: 1 1 160px;
+}
+
+:root body .patient-health-intro {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+:root body .patient-health-intro > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+:root body .patient-health-intro > .badge {
+  max-width: 100%;
+  white-space: normal;
+}
+
+:root body :is(.public-sidebar, .admin-sidebar) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+:root body .patient-steps {
+  flex-wrap: wrap;
+}
+
+:root body .patient-steps li {
+  flex: 1 1 140px;
+}
+
+:root body .patient-steps li > div {
+  white-space: normal;
+}
+
+:root body :is(.nav-item, .admin-nav-item) {
+  min-height: 52px;
+  white-space: normal;
+}
+
+:root body :is(.nav-item, .admin-nav-item) > svg {
+  flex-shrink: 0;
+}
+
+:root body :is(.topbar, .admin-topbar) {
+  height: auto;
+  min-height: 76px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+:root body :is(.breadcrumb, .admin-breadcrumb) {
+  flex-wrap: wrap;
+}
+
+:root body .breadcrumb strong {
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+}
+
+:root body :is(.panel-header, .patient-panel-title, .patient-form-footer,
+  .patient-save-bar, .admin-pagination, .review-bulk-actions) {
+  flex-wrap: wrap;
+}
+
+:root body :is(.patient-condition, .patient-confirm-history,
+  .review-selection-toolbar label, .review-all-selection) {
+  min-height: 44px;
+  align-items: flex-start;
+}
+
+:root body :is(.patient-condition input, .patient-confirm-history input,
+  .legal-agreement-choice input, .review-selection-toolbar input[type="checkbox"],
+  .review-table input[type="checkbox"]) {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+:root body .patient-condition {
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+:root body .legal-agreement-choice {
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 12px;
+  margin-top: 16px;
+}
+
+:root body .legal-agreement-choice label {
+  min-height: 44px;
+}
+
+:root body .legal-links a,
+:root body :is(.portal-text-link, .portal-risk-legend a, .access-back,
+  .access-support a, .patient-login-help a, .admin-text-button) {
+  min-height: 44px;
+  align-content: center;
+}
+
+:root body .access-form-wrap {
+  max-width: 440px;
+}
+
+:root body .access-form-wrap h2 {
+  font-size: 1.875rem;
+  letter-spacing: 0;
+}
+
+:root body .access-story-content h1 {
+  font-size: clamp(2.125rem, 3.3vw, 3.125rem);
+  line-height: 1.6;
+}
+
+:root body .help-faq summary {
+  min-height: 44px;
+  padding: 7px 0;
+}
+
+:root body .patient-guest-confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px) clamp(22px, 4vw, 48px);
+  text-align: center;
+}
+
+:root body .patient-guest-confirmation .patient-success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0;
+  border-radius: 50%;
+  background: #e8f5ef;
+  color: #126949;
+}
+
+:root body .patient-guest-confirmation h2 {
+  font-size: clamp(1.5rem, 2.5vw, 1.875rem);
+  font-weight: 600;
+}
+
+:root body .patient-guest-confirmation p {
+  max-width: 42ch;
+  font-size: 1.125rem;
+  line-height: 1.85;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+:root body .patient-guest-confirmation > .btn {
+  margin-top: 8px;
+  min-height: 56px;
+}
+
+:root body .guest-entry-shell {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+:root body .guest-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px max(24px, calc((100% - 1100px) / 2));
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+:root body .guest-entry-header > span:last-child {
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+:root body .guest-entry-content {
+  width: 100%;
+  max-width: 1148px;
+  margin: 0 auto;
+  padding: 32px 24px 16px;
+}
+
+:root body .guest-entry-content > .content-footer {
+  margin-top: 32px;
+}
+
+@media (max-width: 1100px) {
+  :root body :is(.portal-settings-grid, .portal-risk) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  :root body .access-page {
+    display: block;
+  }
+
+  :root body .access-story {
+    display: none;
+  }
+
+  :root body .access-main {
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: 24px;
+  }
+
+  :root body .access-form-wrap {
+    padding: 40px 0;
+  }
+
+  :root body .help-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 740px) {
+  :root body .main-content {
+    padding: 24px 16px 16px;
+  }
+
+  :root body .guest-entry-header {
+    padding: 18px 16px;
+  }
+
+  :root body .guest-entry-content {
+    padding: 24px 16px 16px;
+  }
+
+  :root body :is(.field-grid, .patient-health-grid, .portal-metrics,
+    .portal-overview-grid, .admin-detail-grid, .review-detail-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root body .patient-steps li:not(:last-child)::after {
+    display: none;
+  }
+
+  :root body :is(.patient-save-bar, .patient-form-footer, .review-filters,
+    .content-footer, .admin-footer, .help-contact) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  :root body :is(.patient-save-bar > .inline-actions,
+    .patient-form-footer > .inline-actions, .patient-guest-confirmation > .btn) {
+    width: 100%;
+  }
+
+  :root body :is(.patient-save-bar > .inline-actions > .btn,
+    .patient-form-footer .btn, .review-bulk-actions .btn) {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  :root body .admin-main .review-filters select.input {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  :root body :is(.portal-metrics > .panel:last-child) {
+    grid-column: auto;
+  }
+
+  :root body .portal-record > div {
+    flex: 1 1 160px;
+  }
+
+  :root body .portal-record {
+    flex-wrap: wrap;
+  }
+
+  :root body :is(.topbar, .admin-topbar) {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  :root body .help-contact > .btn {
+    margin-left: 0;
+  }
+
+  :root body .legal-document-intro {
+    flex-wrap: wrap;
+  }
+
+  :root body .patient-guest-policy {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    padding: 22px;
+  }
+
+  :root body .patient-guest-policy > .badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  :root body .patient-guest-policy {
+    display: block;
+  }
+
+  :root body .patient-guest-policy > .patient-icon {
+    margin-bottom: 12px;
+  }
+
+  :root body .patient-guest-policy > .badge {
+    margin-top: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root body { scroll-behavior: auto; }
+}

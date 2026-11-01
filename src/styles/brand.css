@@ -1,0 +1,5 @@
+.brand { min-width: 0; max-width: 100%; }
+.brand > span:last-child { min-width: 0; }
+.brand strong { font-size: 1.5rem; line-height: 1.15; white-space: normal; }
+.brand .brand-mark { width: 44px; height: 44px; flex: 0 0 44px; padding: 2px; box-sizing: border-box; background: #f0f8f5; border-radius: 14px; }
+.brand .brand-mark img { width: 40px; height: 40px; display: block; object-fit: contain; }

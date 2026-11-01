@@ -1,0 +1,198 @@
+/* Layout corrections verified with enlarged Thai text at phone, tablet and
+   desktop widths. Keep controls and their labels readable as content reflows. */
+:root body .admin-search > .input {
+  padding-left: 44px;
+}
+
+:root body .admin-main .input::placeholder {
+  color: #627770;
+  opacity: 1;
+}
+
+:root body .admin-main select.input {
+  color: var(--ink);
+}
+
+:root body .admin-table th {
+  color: var(--muted);
+}
+
+:root body :is(.admin-detail-grid dt, .review-detail-grid dt,
+  .admin-risk-description, .admin-risk-date, .admin-risk-overview-footer,
+  .admin-risk-card > span:last-of-type, .patient-cv-legend > span,
+  .admin-settings-info-grid p, .review-outbox-grid span,
+  .review-settings-policy p, .review-email-status p,
+  .review-bulk-actions p, .admin-member-identity > span:last-child) {
+  color: var(--muted);
+}
+
+:root body .admin-table-scroll:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: -3px;
+}
+
+/* Pseudo-elements need an explicit selector; they cannot match inside :is(). */
+:root body .patient-history-table td::before {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* Names, citizen IDs and verification labels must reflow together when text
+   is enlarged; the status badge otherwise forces this strip past the viewport. */
+:root body .patient-person-strip {
+  flex-wrap: wrap;
+}
+
+:root body .patient-person-strip > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:root body .patient-person-strip strong {
+  overflow-wrap: anywhere;
+}
+
+:root body .patient-person-strip > .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:root body .content-footer {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 24px;
+}
+
+:root body .content-footer > .legal-links {
+  flex: 1 1 360px;
+}
+
+:root body .content-footer > span {
+  flex: 0 1 auto;
+}
+
+:root body .content-footer > a {
+  flex-shrink: 0;
+}
+
+:root body .email-review-page > header {
+  height: auto;
+  min-height: 86px;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+:root body :is(.email-review-heading > p:last-child,
+  .email-review-records p, .email-review-decision > p) {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+:root body :is(.email-review-page > header > span, .email-review-back,
+  .email-review-records small, .email-review-records details,
+  .email-review-page footer) {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+:root body :is(.email-review-back, .email-review-records summary) {
+  min-height: 44px;
+}
+
+:root body .email-review-records article > div {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1100px) {
+  :root body .admin-table-scroll::before {
+    content: "เลื่อนตารางแนวนอนเพื่อดูข้อมูลและปุ่มดำเนินการ →";
+    display: block;
+    position: sticky;
+    left: 0;
+    width: 100%;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+}
+
+@media (max-width: 740px) {
+  :root body .content-footer > .legal-links {
+    flex-basis: auto;
+  }
+
+  :root body .admin-record-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root body .admin-record-filters > .admin-search {
+    grid-column: auto;
+  }
+
+  :root body .patient-cv-risk-content {
+    align-items: flex-start;
+  }
+
+  :root body .patient-cv-risk-content > .patient-icon {
+    display: none;
+  }
+
+  :root body .patient-cv-risk-content > div:nth-child(2) {
+    flex-basis: 100%;
+  }
+
+  :root body .patient-cv-score {
+    margin-left: 0;
+    min-width: 0;
+    text-align: left;
+  }
+
+  :root body .patient-cv-score > span {
+    max-width: none;
+  }
+
+  :root body .patient-cv-model {
+    margin-left: 0;
+  }
+
+  :root body .email-review-confirm > .inline-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  :root body :is(.admin-settings-grid, .admin-risk-policy,
+    .review-settings-panel) .panel-header > svg {
+    display: none;
+  }
+
+  :root body .admin-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root body .review-outbox-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root body .review-outbox-grid > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  :root body .review-outbox-grid strong {
+    margin-top: 0;
+  }
+}

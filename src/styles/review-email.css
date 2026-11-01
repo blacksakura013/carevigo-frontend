@@ -1,0 +1,168 @@
+.email-review-page {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+.email-review-page > header {
+  height: 86px;
+  padding: 0 7%;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.email-review-page > header > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.email-review-page > main {
+  max-width: 870px;
+  margin: auto;
+  padding: 30px 25px 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.email-review-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #7a9584;
+  align-self: flex-start;
+}
+.email-review-heading {
+  text-align: center;
+  max-width: 590px;
+  margin: 10px auto 5px;
+}
+.email-review-heading > p:last-child {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.9;
+  margin-top: 12px;
+}
+.email-review-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 19px;
+  background: #e6f2e9;
+  color: #73a080;
+  margin: 0 auto 20px;
+}
+.email-review-heading h1 {
+  font-size: 29px;
+}
+.email-review-records {
+  padding: 0 26px;
+}
+.email-review-records > article {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+}
+.email-review-records > article:last-child {
+  border: 0;
+}
+.email-review-records article > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.email-review-records h3 {
+  font-size: 14px;
+}
+.email-review-records p {
+  font-size: 13px;
+  margin-top: 10px;
+  color: #5e7968;
+  line-height: 1.9;
+}
+.email-review-records small {
+  display: block;
+  font-size: 11px;
+  color: #91a394;
+  margin-top: 8px;
+}
+.email-review-records details {
+  margin-top: 12px;
+  color: #8b9f8e;
+  font-size: 11px;
+}
+.email-review-records summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.email-review-records ol {
+  padding-left: 20px;
+  line-height: 2.3;
+  margin-top: 8px;
+}
+.email-review-decision {
+  padding: 25px;
+}
+.email-review-decision > p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.9;
+  margin-top: 7px;
+  margin-bottom: 22px;
+}
+.email-review-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  border-top: 1px solid var(--border);
+  padding-top: 23px;
+  margin-top: 23px;
+}
+.email-review-confirm > .inline-actions {
+  justify-content: flex-end;
+}
+.email-review-page footer {
+  text-align: center;
+  font-size: 11px;
+  color: #94a597;
+  padding: 10px 0 20px;
+}
+@media (max-width: 600px) {
+  .email-review-page > header {
+    padding: 0 20px;
+    height: 76px;
+  }
+  .email-review-page > header > span {
+    font-size: 10px;
+  }
+  .email-review-page > header .brand strong {
+    font-size: 21px;
+  }
+  .email-review-page > main {
+    padding: 25px 16px;
+  }
+  .email-review-heading h1 {
+    font-size: 25px;
+  }
+  .email-review-page .panel-header {
+    flex-wrap: wrap;
+  }
+  .email-review-records {
+    padding: 0 20px;
+  }
+  .email-review-decision {
+    padding: 21px;
+  }
+  .email-review-confirm > .inline-actions {
+    justify-content: stretch;
+  }
+  .email-review-confirm .btn {
+    flex: 1;
+  }
+}

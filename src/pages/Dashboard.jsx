@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import API from "../api/api";
+import { formatThaiDate } from "../utils/thaiDate";
 
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
@@ -28,28 +29,14 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem(
-        "adminAccessToken"
-      );
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
       const [
         summaryRes,
         verificationRes,
         healthRes,
       ] = await Promise.all([
-        API.get("/dashboard/summary", {
-          headers,
-        }),
-        API.get("/dashboard/verification", {
-          headers,
-        }),
-        API.get("/dashboard/health", {
-          headers,
-        }),
+        API.get("/dashboard/summary"),
+        API.get("/dashboard/verification"),
+        API.get("/dashboard/health"),
       ]);
 
       setSummary(summaryRes.data.data);
@@ -478,9 +465,7 @@ export default function AdminDashboard() {
                       </td>
 
                       <td className="p-4 text-gray-500">
-                        {new Date(
-                          item.createdAt
-                        ).toLocaleString()}
+                        {formatThaiDate(item.createdAt, { withTime: true })}
                       </td>
 
                     </tr>
