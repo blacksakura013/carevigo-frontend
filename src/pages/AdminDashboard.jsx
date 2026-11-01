@@ -60,6 +60,7 @@ import ReviewQueue, {
 } from "../components/admin/ReviewQueue";
 import "../styles/admin.css";
 import "../styles/admin-dashboard.css";
+import "../styles/admin-clarity.css";
 import LegalLinks from "../components/LegalLinks";
 import { notifyPasswordChanged } from "../utils/flowFeedback";
 import { getDashboardRecordModel } from "../utils/dashboardRecord";
@@ -662,7 +663,7 @@ export default function AdminDashboard() {
                     <span className="admin-health-type-icon"><Icon size={27} aria-hidden="true" /></span>
                     <span className="admin-health-type-label">{item.label}{key === "bmi" ? " (BMI)" : ""}</span>
                     <strong>{formatNumber(health.summary[key])}<small>รายการ</small></strong>
-                    <span className="admin-health-type-note">ทั้งหมดในระบบ · ทุกสถานะรายการ</span>
+                    <span className="admin-health-type-note">{type === key ? <><CheckCircle2 size={18} aria-hidden="true" /> กำลังแสดงหมวดนี้ · รวมทุกสถานะ</> : "ทั้งหมดในระบบ · ทุกสถานะรายการ"}</span>
                   </button>;
                 })}
               </section>
@@ -687,7 +688,8 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <div className="admin-record-filters">
-                  <label className="admin-search">
+                  <label className="admin-search admin-record-search">
+                    <span className="admin-record-search-label">ค้นหาบันทึกสุขภาพ</span>
                     <Search size={18} aria-hidden="true" />
                     <input className="input" aria-label="ค้นหาบันทึกสุขภาพ" placeholder="ค้นหาชื่อ เลขบัตรประชาชน หรือจังหวัด"
                       value={search} onChange={event => setSearch(event.target.value)} />
@@ -701,7 +703,7 @@ export default function AdminDashboard() {
                   <label className="admin-record-filter-label"><span>สถานะรายการ</span>
                     <select className="input" aria-label="สถานะรายการ" value={reviewStatus} onChange={event => changeHealthFilter(setReviewStatus, event.target.value)}>
                       <option value="all">ทุกสถานะรายการ</option><option value="pending">รอตรวจสอบ</option>
-                      <option value="approved">ยืนยันแล้ว</option><option value="rejected">ยกเลิกแล้ว</option>
+                      <option value="approved">ยืนยันรายการแล้ว</option><option value="rejected">ยกเลิกรายการแล้ว</option>
                     </select>
                   </label>
                   <Button variant="secondary" className="admin-filter-reset" onClick={clearHealthFilters}>ล้างตัวกรอง</Button>
@@ -767,13 +769,15 @@ export default function AdminDashboard() {
                               {record.user?._id ? <button className="admin-table-action" aria-label={`ดูข้อมูล ${fullName(person)}`} onClick={() => setSelected(record.user)}><Eye size={20} aria-hidden="true" />รายละเอียด</button> : <span className="admin-cell-note">ยังไม่เชื่อมทะเบียนสมาชิก</span>}
                             </td>
                             <td data-label="ประเภทและค่าที่บันทึก"><div className="admin-record-category"><TypeIcon size={22} aria-hidden="true" />{TYPES[record.type]?.label || "ไม่ระบุประเภท"}</div>
-                              {["pending", "approved", "rejected"].includes(record.reviewStatus)
-                                ? <ReviewStatusBadge status={record.reviewStatus} /> : <span className="badge badge-neutral">ไม่ระบุสถานะรายการ</span>}
+                              <div className="admin-record-review-state"><span>สถานะตรวจสอบรายการ</span>
+                                {["pending", "approved", "rejected"].includes(record.reviewStatus)
+                                  ? <ReviewStatusBadge status={record.reviewStatus} /> : <span className="badge badge-neutral">ไม่ระบุสถานะรายการ</span>}
+                              </div>
                               {model.measurements.length ? <dl className="admin-record-measurements">
                               {model.measurements.map((item, index) => <div key={`${item.label}-${index}`}><dt>{item.label}</dt><dd>{item.value}{item.unit ? ` ${item.unit}` : ""}</dd></div>)}
                             </dl> : <span>ยังไม่มีค่าที่แสดงได้</span>}</td>
                             <td data-label="การแปลผล"><div className="admin-record-interpretation">
-                              <span className={`admin-record-level admin-record-level-${model.level}`}><StatusIcon size={20} aria-hidden="true" />{model.label}</span>
+                              <span className={`admin-record-level admin-record-level-${model.level}`}><StatusIcon size={20} aria-hidden="true" />{model.level === "urgent" ? `เร่งด่วน · ${model.label}` : model.label}</span>
                             </div></td>
                             <td data-label="ควรทำอย่างไรต่อ" className="admin-record-next-action"><p>{model.nextAction}</p>
                               {model.details.length > 0 && <details className="admin-record-guidance"><summary>คำแนะนำเพิ่มเติม</summary>
@@ -1610,7 +1614,7 @@ function SettingsPanel({ profile }) {
     <div className="admin-settings-grid">
       <section className="panel">
         <div className="panel-header">
-          <h2 className="section-heading">ข้อมูลบัญชี</h2>
+          <div><span className="admin-section-access">อ่านอย่างเดียว</span><h2 className="section-heading">ข้อมูลบัญชี</h2></div>
           <Settings2 size={20} />
         </div>
         <div className="panel-body">
@@ -1618,22 +1622,20 @@ function SettingsPanel({ profile }) {
             <span className="admin-member-avatar">
               {(profile.email || "A").slice(0, 1).toUpperCase()}
             </span>
-            <strong>ผู้ดูแลระบบ</strong>
-            <span className="muted">
-              {profile.email || "ไม่พบข้อมูลอีเมล"}
-            </span>
-            <span className="badge badge-success">
-              {profile.role || "admin"}
-            </span>
+            <dl className="admin-account-details">
+              <div><dt>อีเมลบัญชีที่กำลังใช้งาน</dt><dd>{profile.email || "ไม่พบข้อมูลอีเมล"}</dd></div>
+              <div><dt>สิทธิ์บัญชี</dt><dd><span className="badge badge-neutral">{profile.role === "superadmin" ? "ผู้ดูแลระบบหลัก" : profile.role === "admin" ? "ผู้ดูแลระบบ" : "ไม่พบข้อมูลสิทธิ์"}</span></dd></div>
+            </dl>
           </div>
           <p className="admin-settings-note">
-            ข้อมูลบัญชีที่ยืนยันกับระบบแล้ว
+            ส่วนนี้แสดงข้อมูลบัญชีปัจจุบัน หากต้องการเปลี่ยนรหัสผ่าน ให้กรอกแบบฟอร์มเปลี่ยนรหัสผ่าน
           </p>
         </div>
       </section>
       <section className="panel">
         <div className="panel-header">
           <div>
+            <span className="admin-section-access is-editable">แก้ไขได้</span>
             <h2 className="section-heading">เปลี่ยนรหัสผ่าน</h2>
             <p className="muted">
               ใช้รหัสผ่านที่คาดเดายากและไม่ซ้ำกับบัญชีอื่น
@@ -1642,6 +1644,7 @@ function SettingsPanel({ profile }) {
           <LockKeyhole size={22} />
         </div>
         <form className="panel-body admin-password-form" onSubmit={submit}>
+          <p className="admin-form-help">กรอกรหัสผ่านใหม่ทั้งสองช่องให้ตรงกัน แล้วกด “บันทึกรหัสผ่านใหม่”</p>
           {message && <Notice tone={message.tone}>{message.text}</Notice>}
           <Field
             label="รหัสผ่านใหม่"
@@ -1690,7 +1693,7 @@ function RiskPolicyPanel() {
     <section className="panel admin-risk-policy">
       <div className="panel-header">
         <div>
-          <span className="eyebrow">ASSESSMENT & ACCESS</span>
+          <span className="admin-section-access">เกณฑ์อ้างอิง · อ่านอย่างเดียว</span>
           <h2 className="section-heading">เกณฑ์แสดงผลและการเข้าถึงข้อมูล</h2>
           <p className="muted">
             เกณฑ์เดียวกันสำหรับแดชบอร์ดและผลประเมินของผู้รับบริการ

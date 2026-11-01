@@ -306,3 +306,10 @@ Historic urgent readings ask staff to check current symptoms/results before
 acting; row CV risk is explicitly the assessment stored with that record.
 Legacy BMI-only records retain the stored number neutrally when weight/height
 are missing. The UI does not fetch clinical history to fill missing values.
+
+Administrative information panels explicitly mark read-only account/policy data
+and the editable password form. Account permissions use Thai role labels rather
+than success colors. Record-review status has its own caption, separate from
+clinical interpretation; urgent readings use explicit urgent text and a solid
+red badge. Measured values are larger than labels, and policy copy uses dark,
+readable text on both desktop and mobile.

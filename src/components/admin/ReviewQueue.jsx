@@ -783,11 +783,11 @@ export function ReviewPolicyPanel({ refreshKey = 0 }) {
     <section className="panel review-settings-panel">
       <div className="panel-header">
         <div>
-          <span className="eyebrow">REVIEW POLICY & NOTIFICATIONS</span>
+          <span className="admin-section-access">นโยบายของระบบ · อ่านอย่างเดียว</span>
           <h2 className="section-heading">
             การยืนยันบันทึกและแจ้งเตือนเจ้าหน้าที่
           </h2>
-          <p>นโยบายอัตโนมัติและสถานะการแจ้งเตือนจากระบบ</p>
+          <p>แสดงนโยบายอัตโนมัติและสถานะอีเมล ส่วนนี้ไม่ต้องกรอกข้อมูลหรือกดบันทึก</p>
         </div>
         <ShieldCheck size={23} />
       </div>
@@ -841,7 +841,7 @@ export function ReviewPolicyPanel({ refreshKey = 0 }) {
                 ].map(([key, label]) => (
                   <div key={key}>
                     <span>{label}</span>
-                    <strong>{number(data.outbox?.[key])}</strong>
+                    <strong>{number(data.outbox?.[key])}<small>ฉบับ</small></strong>
                   </div>
                 ))}
               </div>
