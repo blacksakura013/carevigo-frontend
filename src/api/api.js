@@ -451,22 +451,22 @@ export const changeAdminPassword = (password) =>
     return response;
   }));
 export const adminLogout = () => logoutScope("admin");
-export const getDashboardSummary = () => API.get("/dashboard/summary");
+export const getDashboardSummary = (options = {}) => API.get("/dashboard/summary", { ...options, sessionScope: "admin" });
 export const getAdminCohortReport = (params, options = {}) =>
   API.get("/dashboard/cohorts", { ...options, sessionScope: "admin", params });
 export const getDashboardUsers = () => API.get("/dashboard/users");
-export const getDashboardHealth = (page = 1, limit = 100, filters = {}) => {
+export const getDashboardHealth = (page = 1, limit = 100, filters = {}, options = {}) => {
   const selected = typeof filters === "string" ? { type: filters } : filters || {};
   const params = { page, limit };
   ["type", "search", "reviewStatus", "riskLevel", "bmiLevel", "sort"].forEach(key => {
     const value = selected[key];
     if (typeof value === "string" && value.trim() && value !== "all") params[key] = value.trim();
   });
-  return API.get("/dashboard/health", { params });
+  return API.get("/dashboard/health", { ...options, sessionScope: "admin", params });
 };
 export const getDashboardRisk = () => API.get("/dashboard/risk");
-export const getDashboardVerification = () =>
-  API.get("/dashboard/verification");
+export const getDashboardVerification = (options = {}) =>
+  API.get("/dashboard/verification", { ...options, sessionScope: "admin" });
 export const getDashboardSystem = () => API.get("/dashboard/system");
 export const getChronicDiseases = () => API.get("/dashboard/chronic-diseases");
 export const getRiskProvinces = () => API.get("/dashboard/risk/provinces");

@@ -33,6 +33,7 @@ import {
   LockKeyhole,
   CalendarDays,
   Scale,
+  TrendingUp,
 } from "lucide-react";
 import {
   approveAdminUser,
@@ -62,12 +63,14 @@ import ReviewQueue, {
 import "../styles/admin.css";
 import "../styles/admin-dashboard.css";
 import "../styles/admin-clarity.css";
+import "../styles/admin-dashboard-home.css";
 import LegalLinks from "../components/LegalLinks";
 import { notifyPasswordChanged } from "../utils/flowFeedback";
 import { getDashboardRecordModel } from "../utils/dashboardRecord";
 import { getCvRiskPresentation } from "../utils/cvRisk";
 
 const PAGE_SIZE = 20;
+const HEALTH_PAGE_SIZE = 8;
 const TYPES = {
   blood_pressure: {
     label: "ความดันโลหิต",
@@ -138,6 +141,7 @@ const formatNumber = (value) =>
   Number.isFinite(Number(value)) && value !== null && value !== undefined
     ? Number(value).toLocaleString("th-TH")
     : "—";
+const formatCount = value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? formatNumber(value) : "—";
 const fullName = (user) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "ไม่ระบุชื่อ";
 const dateLabel = (value, withTime = false) => {
@@ -262,9 +266,8 @@ function Pagination({ page, total, hasMore, onChange, loading }) {
   );
 }
 function RiskOverview({ counts, loading, onSelect }) {
-  const unavailable = counts
-    ? (Number(counts.incomplete) || 0) + (Number(counts.ineligible) || 0)
-    : undefined;
+  const unavailable = [counts?.incomplete, counts?.ineligible].every(value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0)
+    ? counts.incomplete + counts.ineligible : undefined;
   return (
     <section className="panel admin-risk-overview">
       <div className="panel-header">
@@ -295,7 +298,7 @@ function RiskOverview({ counts, loading, onSelect }) {
                   {item.label}
                 </span>
                 <strong>
-                  {formatNumber(counts?.[level])}
+                  {formatCount(counts?.[level])}
                   <small>คน</small>
                 </strong>
                 <span>{item.range}</span>
@@ -304,18 +307,74 @@ function RiskOverview({ counts, loading, onSelect }) {
             ))}
           </div>
           <div className="admin-risk-overview-footer">
-            <span>มีผลประเมิน {formatNumber(counts?.totalCalculated)} คน</span>
+            <span>มีผลประเมิน {formatCount(counts?.totalCalculated)} คน</span>
             <button
               className="admin-text-button"
               onClick={() => onSelect("unavailable")}
             >
-              ยังประเมินไม่ได้ {formatNumber(unavailable)} คน{" "}
+              ยังประเมินไม่ได้ {formatCount(unavailable)} คน{" "}
               <ChevronRight size={14} />
             </button>
           </div>
         </>
       )}
     </section>
+  );
+}
+
+function HealthRecordCard({ record, onSelect, onReview }) {
+  const model = getDashboardRecordModel(record);
+  const person = record.user || (record.source === "guest" ? record.submittedProfile : null);
+  const name = fullName(person);
+  const category = TYPES[record.type]?.label || "ไม่ระบุประเภท";
+  const TypeIcon = TYPES[record.type]?.icon || Activity;
+  const approved = record.reviewStatus === "approved";
+  const StatusIcon = model.level === "normal" ? CheckCircle2
+    : ["high", "urgent", "watch"].includes(model.level) ? AlertTriangle : Info;
+  const reviewMessage = record.reviewStatus === "pending"
+    ? "รอตรวจสอบข้อมูล · ยังไม่นำมาแปลผลสุขภาพ"
+    : record.reviewStatus === "rejected"
+      ? "รายการนี้ถูกยกเลิก · ไม่นำมาใช้สรุปผลสุขภาพ"
+      : "ไม่ทราบสถานะตรวจสอบ · ยังไม่นำมาแปลผลสุขภาพ";
+  return (
+    <article className={`admin-health-card admin-health-card-${record.type || "unknown"}`} aria-label={`บันทึก${category}ของ ${name}`}>
+      <div className="admin-health-card-person">
+        <div>
+          <h3>{name}</h3>
+          <span>{maskCitizenId(record.user?.citizenId || record.citizenId)}</span>
+          {record.user?.province && <span>{record.user.province}</span>}
+        </div>
+        {record.user?._id && <button type="button" className="admin-health-person-button" aria-label={`ดูข้อมูล ${name}`} onClick={() => onSelect(record.user)}><Eye size={19} aria-hidden="true" /><span>ข้อมูลบุคคล</span></button>}
+      </div>
+      <p className="admin-health-card-date"><CalendarDays size={18} aria-hidden="true" />วันที่บันทึก {dateLabel(record.submittedAt || record.createdAt, true)}</p>
+      <div className="admin-health-card-category"><TypeIcon size={23} aria-hidden="true" /><strong>{category}</strong></div>
+      {model.measurements.length ? <dl className="admin-record-measurements admin-health-card-values">
+        {model.measurements.map((item, index) => <div key={`${item.label}-${index}`}><dt>{item.label}</dt><dd>{item.value}{item.unit ? ` ${item.unit}` : ""}</dd></div>)}
+      </dl> : <p className="admin-health-card-empty">ยังไม่มีค่าที่แสดงได้</p>}
+      <div className="admin-health-card-review"><span>สถานะตรวจสอบ</span>
+        {["pending", "approved", "rejected"].includes(record.reviewStatus)
+          ? <ReviewStatusBadge status={record.reviewStatus} /> : <span className="badge badge-neutral">ไม่ทราบสถานะรายการ</span>}
+      </div>
+      {approved ? <div className="admin-health-card-result">
+        <span className="admin-health-card-result-label">แปลผลจากค่าตามวันที่บันทึก</span>
+        <span className={`admin-record-level admin-record-level-${model.level}`}><StatusIcon size={20} aria-hidden="true" />{model.level === "urgent" ? `เร่งด่วน · ${model.label}` : model.label}</span>
+      </div> : <p className="admin-health-card-unreviewed"><Info size={20} aria-hidden="true" />{reviewMessage}</p>}
+      <details className="admin-health-card-details">
+        <summary>{approved ? "การแปลผลและคำแนะนำ" : "รายละเอียดสถานะรายการ"}</summary>
+        <div className="admin-health-card-details-body">
+          {approved ? <>
+            <p className="admin-health-next-action"><strong>ควรทำอย่างไรต่อ</strong>{model.nextAction}</p>
+            <p>ใช้คำแนะนำนี้เมื่อค่าตรวจยังเป็นปัจจุบัน หากเป็นผลเดิมให้ตรวจสอบอาการและผลตรวจล่าสุดก่อน</p>
+            {model.details.map(card => <section key={card.id}><h4>{card.title}</h4><p>{card.explanation}</p>
+              <ul>{card.actions.map(action => <li key={action}>{action}</li>)}</ul><p>{card.reference}</p>
+            </section>)}
+            {model.sources.length > 0 && <ul className="admin-health-card-sources">{model.sources.map(source => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer noopener">{source.title}</a></li>)}</ul>}
+            <section className="admin-health-card-cv"><h4>Thai CV Risk · ความเสี่ยงใน 10 ปี</h4><CvRiskBadge risk={record.thaiCvRisk} showReason /><p>คะแนน ณ เวลาบันทึกรายการ แยกจากการแปลผลค่าตรวจและ BMI</p></section>
+          </> : <><p>{reviewMessage} ค่าที่เห็นเป็นข้อมูลตามที่บันทึกไว้</p>{record.reviewStatus === "pending" && <button type="button" className="admin-health-inline-action" onClick={onReview}>เปิดคิวตรวจสอบบันทึก <ArrowRight size={18} aria-hidden="true" /></button>}</>}
+          {/^\d{13}$/.test(record.user?.citizenId || record.citizenId || "") && <Link className="admin-health-inline-action" to={`/admin/progress/${record.user?.citizenId || record.citizenId}`}>ติดตามสุขภาพรายบุคคล <ArrowRight size={18} aria-hidden="true" /></Link>}
+        </div>
+      </details>
+    </article>
   );
 }
 
@@ -336,6 +395,8 @@ export default function AdminDashboard() {
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState("");
   const [health, setHealth] = useState({
+    requestKey: null,
+    asOf: null,
     records: [],
     summary: {},
     total: null,
@@ -370,47 +431,53 @@ export default function AdminDashboard() {
   const [accountBusy, setAccountBusy] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const detailRequest = useRef(0);
+  const overviewRequest = useRef(0);
+  const healthRequestKey = JSON.stringify([activeMenu, healthPage, refreshKey, healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort]);
 
-  const loadOverview = useCallback(async () => {
+  const loadOverview = useCallback(() => {
+    const controller = new AbortController();
+    const request = ++overviewRequest.current;
+    const isCurrent = () => !controller.signal.aborted && request === overviewRequest.current;
     setOverviewLoading(true);
     setOverviewError("");
-    const results = await Promise.allSettled([
-      getDashboardSummary(),
-      getDashboardVerification(),
-    ]);
-    if (results[0].status === "fulfilled")
-      setSummary(results[0].value?.data?.data || {});
-    if (results[1].status === "fulfilled")
-      setVerification(results[1].value?.data?.data || {});
-    const failed = results.find((result) => result.status === "rejected");
-    if (failed)
-      setOverviewError(
-        getApiError(
-          failed.reason,
-          "โหลดข้อมูลสรุปบางส่วนไม่สำเร็จ กรุณาลองใหม่",
-        ),
-      );
-    setLastUpdated(new Date());
-    setOverviewLoading(false);
+    Promise.allSettled([
+      getDashboardSummary({ signal: controller.signal, isCurrent }),
+      getDashboardVerification({ signal: controller.signal, isCurrent }),
+    ]).then(results => {
+      if (!isCurrent()) return;
+      if (results[0].status === "fulfilled") {
+        const nextSummary = results[0].value?.data?.data || {};
+        setSummary(nextSummary);
+        setLastUpdated(nextSummary.asOf && Number.isFinite(Date.parse(nextSummary.asOf)) ? nextSummary.asOf : null);
+      }
+      if (results[1].status === "fulfilled") setVerification(results[1].value?.data?.data || {});
+      const failed = results.find(result => result.status === "rejected");
+      if (failed) setOverviewError(getApiError(failed.reason, "โหลดข้อมูลสรุปบางส่วนไม่สำเร็จ กำลังแสดงข้อมูลที่โหลดสำเร็จครั้งล่าสุด กรุณาลองใหม่"));
+      setOverviewLoading(false);
+    });
+    return () => { controller.abort(); overviewRequest.current += 1; };
   }, []);
   useEffect(() => {
-    loadOverview();
+    return loadOverview();
   }, [loadOverview, refreshKey]);
   useEffect(() => {
     if (activeMenu !== "dashboard") { setHealthLoading(false); return undefined; }
-    let cancelled = false;
+    const controller = new AbortController();
+    const isCurrent = () => !controller.signal.aborted;
     setHealthLoading(true);
     setHealthError("");
-    getDashboardHealth(healthPage, PAGE_SIZE, { search: healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort })
+    getDashboardHealth(healthPage, HEALTH_PAGE_SIZE, { search: healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort }, { signal: controller.signal, isCurrent })
       .then((response) => {
-        if (!cancelled) {
+        if (isCurrent()) {
           const body = response?.data || {};
           if (body.data?.summaryScope !== "all") {
-            setHealth({ records: [], summary: {}, total: null, hasMore: false });
+            setHealth({ requestKey: healthRequestKey, asOf: null, records: [], summary: {}, total: null, hasMore: false });
             setHealthError("API ยังไม่รองรับการค้นหาทั้งระบบ กรุณาอัปเดต backend แล้วรีเฟรช");
             return;
           }
           setHealth({
+            requestKey: healthRequestKey,
+            asOf: body.data.asOf && Number.isFinite(Date.parse(body.data.asOf)) ? body.data.asOf : null,
             records: body.data?.records || [],
             summary: body.data?.summary || {},
             total: Number.isFinite(body.total) && body.total >= 0 ? body.total : null,
@@ -419,16 +486,16 @@ export default function AdminDashboard() {
         }
       })
       .catch((error) => {
-        if (!cancelled)
+        if (isCurrent()) {
+          setHealth({ requestKey: healthRequestKey, asOf: null, records: [], summary: {}, total: null, hasMore: false });
           setHealthError(getApiError(error, "โหลดรายการสุขภาพไม่สำเร็จ"));
+        }
       })
       .finally(() => {
-        if (!cancelled) setHealthLoading(false);
+        if (isCurrent()) setHealthLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeMenu, healthPage, refreshKey, healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort]);
+    return () => controller.abort();
+  }, [activeMenu, healthPage, refreshKey, healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort, healthRequestKey]);
   useEffect(() => {
     if (search.trim() === healthQuery) return undefined;
     const timer = setTimeout(() => { setHealthQuery(search.trim()); setHealthPage(1); }, 350);
@@ -542,7 +609,12 @@ export default function AdminDashboard() {
   const refresh = () => {
     setRefreshKey((key) => key + 1);
   };
-  const records = health.records;
+  const healthMatches = health.requestKey === healthRequestKey;
+  const currentHealthLoading = healthLoading || !healthMatches;
+  const currentHealthError = healthMatches ? healthError : "";
+  const records = healthMatches ? health.records : [];
+  const categorySummary = healthMatches && !healthError ? health.summary : {};
+  const summaryCompatible = summary?.schemaVersion === 2 && summary?.timeZone === "Asia/Bangkok";
   const hasHealthFilters = Boolean(healthQuery || type !== "all" || reviewStatus !== "all" || riskLevel !== "all" || bmiLevel !== "all");
   const changeHealthFilter = (setter, value) => { setter(value); setHealthPage(1); };
   const clearHealthFilters = () => {
@@ -614,7 +686,7 @@ export default function AdminDashboard() {
             title={MENU_LABELS[activeMenu]}
             description={
               activeMenu === "dashboard"
-                ? "เลือกหมวดผลตรวจ แล้วดูค่า การแปลผล และสิ่งที่ควรทำต่อ"
+                ? "ดูภาพรวม งานที่รอตรวจสอบ และผลสุขภาพล่าสุดของผู้รับบริการ"
                 : activeMenu === "reports"
                   ? "ดูรายบุคคล แยกกลุ่มโรคและวันที่ พร้อมสรุปวัน เดือน 3 เดือน และ 6 เดือน"
                 : activeMenu === "members"
@@ -658,41 +730,45 @@ export default function AdminDashboard() {
           {activeMenu === "reports" && <AdminCohortReport refreshKey={refreshKey} />}
           {activeMenu === "dashboard" && (
             <>
-              <section className="admin-health-type-cards" aria-label="จำนวนบันทึกสุขภาพแยกตามประเภท">
-                {Object.entries(TYPES).map(([key, item]) => {
-                  const Icon = item.icon;
-                  return <button type="button" key={key}
-                    className={`admin-health-type-card admin-health-type-${key}${type === key ? " is-selected" : ""}`}
-                    aria-pressed={type === key}
-                    onClick={() => changeHealthFilter(setType, key)}
-                    disabled={healthLoading && !Object.keys(health.summary).length}>
-                    <span className="admin-health-type-icon"><Icon size={27} aria-hidden="true" /></span>
-                    <span className="admin-health-type-label">{item.label}{key === "bmi" ? " (BMI)" : ""}</span>
-                    <strong>{formatNumber(health.summary[key])}<small>รายการ</small></strong>
-                    <span className="admin-health-type-note">{type === key ? <><CheckCircle2 size={18} aria-hidden="true" /> กำลังแสดงหมวดนี้ · รวมทุกสถานะ</> : "ทั้งหมดในระบบ · ทุกสถานะรายการ"}</span>
-                  </button>;
-                })}
+              <section className="admin-home-summary" aria-label="ภาพรวมระบบและงานรอตรวจสอบ" aria-busy={overviewLoading}>
+                <button type="button" onClick={() => changeMenu("members")}><span className="admin-home-stat-icon"><Users size={22} aria-hidden="true" /></span><span>สมาชิกทั้งหมด</span><strong>{formatCount(summary?.totalUsers)}<small>คน</small></strong><span className="admin-home-stat-note">ทะเบียนสมาชิกทุกสถานะ</span></button>
+                <div><span className="admin-home-stat-icon"><ClipboardList size={22} aria-hidden="true" /></span><span>บันทึกสุขภาพวันนี้</span><strong>{formatCount(summary?.todayHealthRecords)}<small>รายการ</small></strong><span className="admin-home-stat-note">วันที่ปัจจุบันตามเวลาไทย</span></div>
+                <button type="button" className="admin-home-stat-pending" onClick={() => changeMenu("reviews")}><span className="admin-home-stat-icon"><ClipboardList size={22} aria-hidden="true" /></span><span>บันทึกรอตรวจสอบ</span><strong>{formatCount(summaryCompatible ? summary.pendingHealthRecords : undefined)}<small>รายการ</small></strong><span className="admin-home-stat-note">ทุกวันที่ยังไม่ได้ตรวจสอบ</span></button>
+                <button type="button" onClick={() => changeMenu("verification")}><span className="admin-home-stat-icon"><UserRoundPlus size={22} aria-hidden="true" /></span><span>สมาชิกรอยืนยัน</span><strong>{formatCount(verification?.pending)}<small>คน</small></strong><span className="admin-home-stat-note">แยกจากสถานะบันทึกสุขภาพ</span></button>
+                <p className="admin-home-summary-asof">{overviewLoading ? "กำลังอัปเดตข้อมูลสรุป…" : lastUpdated ? `ข้อมูลสรุป ณ ${dateLabel(lastUpdated, true)} น.` : "ยังไม่มีเวลายืนยันการอัปเดตข้อมูลสรุป"}</p>
               </section>
+              {!overviewLoading && summary && !summaryCompatible && <Notice tone="warning">API ข้อมูลสรุปยังเป็นรุ่นเดิม จำนวนบันทึกรอตรวจสอบจะแสดงเมื่ออัปเดต backend แล้ว กรุณารีเฟรชหลังอัปเดต</Notice>}
+              <section className="admin-home-work" aria-label="งานที่ต้องดูแล">
+                <div className="admin-home-work-heading"><ShieldCheck size={25} aria-hidden="true" /><div><h2>งานที่ต้องดูแล</h2><p>ตรวจสอบข้อมูลก่อนนำไปติดตามสุขภาพ</p></div></div>
+                <div className="admin-home-work-actions"><button type="button" onClick={() => changeMenu("reviews")}>ตรวจสอบบันทึกสุขภาพ <ArrowRight size={19} aria-hidden="true" /></button><button type="button" onClick={() => changeMenu("verification")}>เปิดคิวยืนยันสมาชิก <ArrowRight size={19} aria-hidden="true" /></button></div>
+                <div className="admin-home-quick-actions"><button type="button" onClick={() => changeMenu("reports")}><CalendarDays size={21} aria-hidden="true" /><span>รายงานกลุ่มโรคและช่วงเวลา<small>รายวัน · เดือน · 3 เดือน · 6 เดือน</small></span><ArrowRight size={19} aria-hidden="true" /></button><Link to="/admin/progress"><TrendingUp size={21} aria-hidden="true" /><span>ติดตามสุขภาพรายบุคคล<small>กราฟย้อนหลังและเปรียบเทียบผลตรวจ</small></span><ArrowRight size={19} aria-hidden="true" /></Link></div>
+              </section>
+              <details className="admin-home-risk-details"><summary><HeartPulse size={22} aria-hidden="true" /><span>ภาพรวม Thai CV Risk ของสมาชิก<small>ผลประเมินล่าสุดที่บันทึกไว้ · ความเสี่ยงใน 10 ปี</small></span></summary><RiskOverview counts={summary?.thaiCvRisk} loading={overviewLoading} onSelect={openRiskMembers} /></details>
               <section className="panel admin-records-panel">
                 <div className="panel-header">
                   <div>
                     <span className="eyebrow">HEALTH RECORDS</span>
                     <h2 className="section-heading">
-                      รายการผลตรวจสุขภาพ{" "}
+                      ผลสุขภาพที่บันทึกล่าสุด{" "}
                       <span className="admin-heading-count">
-                        {formatNumber(health.total)}
+                        {formatCount(healthMatches ? health.total : undefined)}
                       </span>
                     </h2>
                     <p className="muted">
-                      ค้นหาและกรองรายการทั้งระบบ · หน้าละ {PAGE_SIZE} รายการ
+                      ค้นหาและกรองรายการทั้งระบบ · หน้าละ {HEALTH_PAGE_SIZE} รายการ
                     </p>
                   </div>
                   <span className="admin-updated">
-                    {lastUpdated
-                      ? `อัปเดต ${dateLabel(lastUpdated, true)} น.`
-                      : "กำลังอัปเดต"}
+                    {healthMatches && health.asOf
+                      ? `รายการ ณ ${dateLabel(health.asOf, true)} น.`
+                      : "ยังไม่มีเวลาอัปเดตรายการ"}
                   </span>
                 </div>
+                <div className="admin-home-category-heading"><strong>เลือกหมวดผลตรวจ</strong><span>จำนวนทุกช่วงเวลาและทุกสถานะในระบบ</span></div>
+                <section className="admin-home-category-tabs" aria-label="จำนวนบันทึกสุขภาพแยกตามประเภท">
+                  <button type="button" className={type === "all" ? "is-selected" : ""} aria-pressed={type === "all"} onClick={() => changeHealthFilter(setType, "all")}><ClipboardList size={19} aria-hidden="true" /><span>ทั้งหมด</span><strong>{formatCount(summary?.totalHealthRecords)}<small>รายการ</small></strong></button>
+                  {Object.entries(TYPES).map(([key, item]) => { const Icon = item.icon; return <button type="button" key={key} className={`admin-home-category-${key}${type === key ? " is-selected" : ""}`} aria-pressed={type === key} onClick={() => changeHealthFilter(setType, key)}><Icon size={19} aria-hidden="true" /><span>{item.short}</span><strong>{formatCount(categorySummary[key])}<small>รายการ</small></strong></button>; })}
+                </section>
                 <div className="admin-record-filters">
                   <label className="admin-search admin-record-search">
                     <span className="admin-record-search-label">ค้นหาบันทึกสุขภาพ</span>
@@ -700,16 +776,11 @@ export default function AdminDashboard() {
                     <input className="input" aria-label="ค้นหาบันทึกสุขภาพ" placeholder="ค้นหาชื่อ เลขบัตรประชาชน หรือจังหวัด"
                       value={search} onChange={event => setSearch(event.target.value)} />
                   </label>
-                  <label className="admin-record-filter-label"><span>ประเภทบันทึก</span>
-                    <select className="input" aria-label="ประเภทบันทึก" value={type} onChange={event => changeHealthFilter(setType, event.target.value)}>
-                      <option value="all">ทุกประเภท</option>
-                      {Object.entries(TYPES).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
-                    </select>
-                  </label>
                   <label className="admin-record-filter-label"><span>สถานะรายการ</span>
                     <select className="input" aria-label="สถานะรายการ" value={reviewStatus} onChange={event => changeHealthFilter(setReviewStatus, event.target.value)}>
                       <option value="all">ทุกสถานะรายการ</option><option value="pending">รอตรวจสอบ</option>
                       <option value="approved">ยืนยันรายการแล้ว</option><option value="rejected">ยกเลิกรายการแล้ว</option>
+                      <option value="unknown">ไม่ทราบสถานะรายการ</option>
                     </select>
                   </label>
                   <Button variant="secondary" className="admin-filter-reset" onClick={clearHealthFilters}>ล้างตัวกรอง</Button>
@@ -738,11 +809,11 @@ export default function AdminDashboard() {
                     </div>
                   </details>
                 </div>
-                {healthLoading ? (
+                {currentHealthLoading ? (
                   <Skeleton rows={5} />
-                ) : healthError ? (
+                ) : currentHealthError ? (
                   <div className="panel-body">
-                    <Notice tone="error">{healthError}</Notice>
+                    <Notice tone="error">{currentHealthError}</Notice>
                     <Button variant="secondary" onClick={refresh}>
                       ลองอีกครั้ง
                     </Button>
@@ -752,62 +823,17 @@ export default function AdminDashboard() {
                     title={hasHealthFilters ? "ไม่พบข้อมูลที่ตรงกับตัวกรอง" : "ยังไม่มีบันทึกสุขภาพ"}
                     description={hasHealthFilters ? "ลองเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูรายการทั้งหมด" : "ข้อมูลจะแสดงเมื่อมีการบันทึกผลตรวจสุขภาพ"} />
                 ) : (
-                  <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="ตารางบันทึกสุขภาพ เลื่อนเพื่อดูข้อมูลเพิ่มเติม">
-                    <table className="admin-table admin-health-table" role="table">
-                      <caption className="sr-only">บันทึกสุขภาพสมาชิก</caption>
-                      <thead><tr>
-                        <th scope="col">ผู้รับบริการ</th><th scope="col">ประเภทและค่าที่บันทึก</th>
-                        <th scope="col">การแปลผล</th><th scope="col">ควรทำอย่างไรต่อ</th><th scope="col">Thai CV Risk · 10 ปี</th>
-                      </tr></thead>
-                      <tbody>
-                        {records.map(record => {
-                          const model = getDashboardRecordModel(record);
-                          const person = record.user || (record.source === "guest" ? record.submittedProfile : null);
-                          const TypeIcon = TYPES[record.type]?.icon || Activity;
-                          const StatusIcon = model.level === "normal" ? CheckCircle2 : ["high", "urgent", "watch"].includes(model.level) ? AlertTriangle : Info;
-                          return <tr key={record._id}>
-                            <td data-label="ผู้รับบริการ"><div className="admin-person">
-                              <span className="admin-person-avatar" aria-hidden="true">{fullName(person).slice(0, 1)}</span>
-                              <div><strong>{fullName(person)}</strong><span>{maskCitizenId(record.user?.citizenId || record.citizenId)}</span>
-                                {record.user?.province && <span>{record.user.province}</span>}
-                              </div>
-                            </div><span className="admin-record-date">{dateLabel(record.createdAt, true)}</span>
-                              {record.user?._id ? <button className="admin-table-action" aria-label={`ดูข้อมูล ${fullName(person)}`} onClick={() => setSelected(record.user)}><Eye size={20} aria-hidden="true" />รายละเอียด</button> : <span className="admin-cell-note">ยังไม่เชื่อมทะเบียนสมาชิก</span>}
-                            </td>
-                            <td data-label="ประเภทและค่าที่บันทึก"><div className="admin-record-category"><TypeIcon size={22} aria-hidden="true" />{TYPES[record.type]?.label || "ไม่ระบุประเภท"}</div>
-                              <div className="admin-record-review-state"><span>สถานะตรวจสอบรายการ</span>
-                                {["pending", "approved", "rejected"].includes(record.reviewStatus)
-                                  ? <ReviewStatusBadge status={record.reviewStatus} /> : <span className="badge badge-neutral">ไม่ระบุสถานะรายการ</span>}
-                              </div>
-                              {model.measurements.length ? <dl className="admin-record-measurements">
-                              {model.measurements.map((item, index) => <div key={`${item.label}-${index}`}><dt>{item.label}</dt><dd>{item.value}{item.unit ? ` ${item.unit}` : ""}</dd></div>)}
-                            </dl> : <span>ยังไม่มีค่าที่แสดงได้</span>}</td>
-                            <td data-label="การแปลผล"><div className="admin-record-interpretation">
-                              <span className={`admin-record-level admin-record-level-${model.level}`}><StatusIcon size={20} aria-hidden="true" />{model.level === "urgent" ? `เร่งด่วน · ${model.label}` : model.label}</span>
-                            </div></td>
-                            <td data-label="ควรทำอย่างไรต่อ" className="admin-record-next-action"><p>{model.nextAction}</p>
-                              {model.details.length > 0 && <details className="admin-record-guidance"><summary>คำแนะนำเพิ่มเติม</summary>
-                                <p>ใช้คำแนะนำนี้เมื่อค่าตรวจยังเป็นปัจจุบัน หากเป็นผลเดิมให้ตรวจสอบอาการและผลตรวจล่าสุดก่อน</p>
-                                {model.details.map(card => <section key={card.id}><h4>{card.title}</h4><p>{card.explanation}</p>
-                                  <ul>{card.actions.map(action => <li key={action}>{action}</li>)}</ul><p>{card.reference}</p>
-                                </section>)}
-                                <ul>{model.sources.map(source => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer noopener">{source.title}</a></li>)}</ul>
-                              </details>}
-                            </td>
-                            <td data-label="Thai CV Risk · 10 ปี"><CvRiskBadge risk={record.thaiCvRisk} /><span className="admin-cell-note">คะแนน ณ เวลาบันทึก</span></td>
-                          </tr>;
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <section className="admin-home-record-grid" aria-label="บันทึกสุขภาพสมาชิก">
+                    {records.map(record => <HealthRecordCard key={record._id} record={record} onSelect={setSelected} onReview={() => changeMenu("reviews")} />)}
+                  </section>
                 )}
-                {!healthError && (
+                {!currentHealthError && !currentHealthLoading && (
                   <Pagination
                     page={healthPage}
                     total={health.total}
                     hasMore={health.hasMore}
                     onChange={setHealthPage}
-                    loading={healthLoading}
+                    loading={currentHealthLoading}
                   />
                 )}
                 <p className="admin-clinical-note">
@@ -815,12 +841,6 @@ export default function AdminDashboard() {
                   เมื่อไม่มีวันเกิดจะใช้เกณฑ์ผู้ใหญ่ทั่วไป ส่วน Thai CV Risk เป็นความเสี่ยงใน 10 ปี ณ เวลาบันทึก แยกจาก BMI และระดับผลตรวจแต่ละรายการ
                 </p>
               </section>
-              <section className="admin-dashboard-secondary" aria-label="ข้อมูลสมาชิกและการดูแล">
-                <div><span>สมาชิกทั้งหมด</span><strong>{formatNumber(summary?.totalUsers)} คน</strong><small>สมาชิกในทะเบียน</small></div>
-                <div><span>บันทึกสุขภาพวันนี้</span><strong>{formatNumber(summary?.todayHealthRecords)} รายการ</strong><small>วันที่ปัจจุบันตามเวลาไทย</small></div>
-                <button type="button" onClick={() => changeMenu("verification")}><span>สมาชิกรอยืนยัน</span><strong>{formatNumber(verification?.pending)} คน</strong><small>เปิดตรวจสอบทะเบียนสมาชิก · แยกจากสถานะผลตรวจ</small></button>
-              </section>
-              <RiskOverview counts={summary?.thaiCvRisk} loading={overviewLoading} onSelect={openRiskMembers} />
             </>
           )}
           {(activeMenu === "members" || activeMenu === "verification") && (
@@ -832,7 +852,7 @@ export default function AdminDashboard() {
                   </span>
                   <div>
                     <strong>
-                      {formatNumber(verification?.pending)}{" "}
+                      {formatCount(verification?.pending)}{" "}
                       สมาชิกกำลังรอการยืนยัน
                     </strong>
                     <p>เปิดรายละเอียดเพื่อตรวจสอบข้อมูล ก่อนยืนยันสมาชิก</p>

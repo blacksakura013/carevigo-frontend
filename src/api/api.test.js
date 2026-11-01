@@ -5,7 +5,7 @@ import API, {
   patientLogout, restoreSession, saveAdminSession, savePatientSession,
   storePatientProfile, submitGuestHealth, changePatientPassword, changeAdminPassword, updatePatientProfile,
   requestAdminPasswordReset, validateAdminPasswordReset, resetAdminPassword,
-  searchUser, getGuestProfile, getDashboardHealth, getHealthProgress, getAdminCohortReport,
+  searchUser, getGuestProfile, getDashboardHealth, getHealthProgress, getAdminCohortReport, getDashboardSummary, getDashboardVerification,
 } from "./api";
 import { beginSessionLoad, clearSession, installSessionSync, SESSION_EVENT_KEY } from "../utils/session";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
@@ -16,6 +16,33 @@ jest.mock("../utils/apiReadiness", () => ({ createApiReadiness: () => ({
 }) }));
 
 const originalAdapter = API.defaults.adapter;
+
+test.each([
+  ["summary", getDashboardSummary, "/dashboard/summary"],
+  ["verification", getDashboardVerification, "/dashboard/verification"],
+  ["records", options => getDashboardHealth(1, 8, { reviewStatus: "unknown" }, options), "/dashboard/health"],
+])("dashboard %s reads keep explicit staff scope, cancellation and session ownership with dual accounts", async (_name, request, path) => {
+  saveAdminSession(session("admin", "dashboard-private-staff")); savePatientSession(session("patient", "dashboard-private-patient"));
+  const controller = new AbortController(), isCurrent = () => true;
+  API.defaults.adapter = async config => {
+    expect(config.url).toBe(path); expect(config.method).toBe("get");
+    expect(config.headers["X-Carevigo-Scope"]).toBe("admin"); expect(config.headers["X-Carevigo-Session-Id"]).toBe("dashboard-private-staff");
+    expect(config.signal).toBe(controller.signal); expect(config.isCurrent).toBe(isCurrent); expect(config.sessionIndependent).not.toBe(true);
+    return ok(config, {});
+  };
+  await request({ signal: controller.signal, isCurrent, sessionScope: "patient" });
+});
+
+test("a dashboard result cannot paint after replacing the staff account and a staff 401 preserves the member account", async () => {
+  saveAdminSession(session("admin", "dashboard-old-staff")); savePatientSession(session("patient", "dashboard-member"));
+  const pending = deferredAdapter(); const request = getDashboardHealth(1, 8);
+  await pending.ready;
+  saveAdminSession(session("admin", "dashboard-new-staff")); pending.complete({ records: [{ value: { fbs: 999 } }] });
+  await expect(request).rejects.toMatchObject({ code: "ERR_CANCELED" });
+  API.defaults.adapter = config => fail(config, 401);
+  await expect(getDashboardSummary()).rejects.toMatchObject({ response: { status: 401 } });
+  expect(getSessionSnapshot("admin").status).toBe("anonymous"); expect(getSessionSnapshot("patient").sessionId).toBe("dashboard-member");
+});
 
 test("cohort reporting pins admin scope even when the caller has both sessions and passes patient options", async () => {
   saveAdminSession(session("admin", "cohort-staff")); savePatientSession(session("patient", "cohort-patient"));

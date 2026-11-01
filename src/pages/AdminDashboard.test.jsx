@@ -20,6 +20,7 @@ import {
   getDashboardSummary,
   getDashboardVerification,
   getReviewSettings,
+  getReviewQueue,
   getStoredAdmin,
   provisionPatientAccount,
 } from "../api/api";
@@ -55,6 +56,7 @@ const member = {
 };
 const healthRecord = {
   _id: "record-1",
+  reviewStatus: "approved",
   type: "blood_pressure",
   value: { systolic: 124, diastolic: 82 },
   createdAt: "2026-10-30T12:00:00Z",
@@ -67,6 +69,8 @@ const healthResponse = {
     data: {
       summary: { blood_pressure: 5, sugar: 3, cholesterol: 2, bmi: 1 },
       summaryScope: "all",
+      asOf: "2026-11-02T08:01:00Z",
+      timeZone: "Asia/Bangkok",
       records: [healthRecord],
     },
     total: 11,
@@ -99,7 +103,7 @@ beforeEach(() => {
   getStoredAdmin.mockReturnValue(null);
   getDashboardSummary.mockResolvedValue({
     data: {
-      data: { totalUsers: 7, totalHealthRecords: 11, todayHealthRecords: 2 },
+      data: { schemaVersion: 2, asOf: "2026-11-02T08:00:00Z", timeZone: "Asia/Bangkok", totalUsers: 7, totalHealthRecords: 11, todayHealthRecords: 2, pendingHealthRecords: 3, approvedHealthRecords: 6, rejectedHealthRecords: 1, unknownHealthRecords: 1 },
     },
   });
   getDashboardVerification.mockResolvedValue({
@@ -146,29 +150,33 @@ beforeEach(() => {
       },
     },
   });
+  getReviewQueue.mockResolvedValue({ data: { data: [], total: 0, hasMore: false } });
 });
 
-test("puts four real category totals and the record table first, and filters all records on the server", async () => {
+test("shows a compact work overview before eight-record cards, with server-wide category filters", async () => {
   getDashboardHealth.mockImplementation(async (_page, _limit, filters) => ({ data: { ...healthResponse.data,
     data: { ...healthResponse.data.data, records: filters.type === "sugar" ? [] : [healthRecord] }, total: filters.type === "sugar" ? 0 : 11 } }));
   renderDashboard();
+  const overview = screen.getByRole("region", { name: "ภาพรวมระบบและงานรอตรวจสอบ" });
+  const work = screen.getByRole("region", { name: "งานที่ต้องดูแล" });
   const counts = screen.getByRole("region", { name: "จำนวนบันทึกสุขภาพแยกตามประเภท" });
-  const pressure = await within(counts).findByRole("button", { name: /ความดันโลหิต 5 รายการ/ });
-  expect(within(counts).getAllByRole("button")).toHaveLength(4);
-  expect(screen.getByRole("heading", { level: 1, name: "แดชบอร์ดสุขภาพ" })).toBeInTheDocument();
-  const table = await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" });
-  expect(counts.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(table.compareDocumentPosition(screen.getByRole("heading", { name: "ความเสี่ยงโรคหัวใจและหลอดเลือดของสมาชิก" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.queryByRole("img", { name: /ความดันโลหิต 5 รายการ/ })).not.toBeInTheDocument();
-  expect(within(table).getByText("124 mmHg")).toBeInTheDocument(); expect(within(table).getByText("82 mmHg")).toBeInTheDocument();
-  expect(within(table).getByText("•••••••••0123")).toBeInTheDocument(); expect(table).toHaveTextContent("2569");
+  const pressure = await within(counts).findByRole("button", { name: /ความดัน 5 รายการ/ });
+  const records = await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" });
+  expect(within(counts).getAllByRole("button")).toHaveLength(5);
+  expect(overview.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(work.compareDocumentPosition(records) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  expect(within(records).getAllByRole("article")).toHaveLength(1);
+  expect(within(records).getByText("124 mmHg")).toBeVisible(); expect(within(records).getByText("82 mmHg")).toBeVisible();
+  expect(within(records).getByText("•••••••••0123")).toBeVisible(); expect(records).toHaveTextContent("2569");
+  expect(within(records).getByText("ควรทำอย่างไรต่อ")).not.toBeVisible();
   expect(pressure).toHaveAttribute("aria-pressed", "false");
-  fireEvent.click(within(counts).getByRole("button", { name: /ระดับน้ำตาล 3 รายการ/ }));
-  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1, 20, expect.objectContaining({ type: "sugar" })));
+  fireEvent.click(within(counts).getByRole("button", { name: /น้ำตาล 3 รายการ/ }));
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1, 8, expect.objectContaining({ type: "sugar" }), expect.any(Object)));
   expect(await screen.findByText("ไม่พบข้อมูลที่ตรงกับตัวกรอง")).toBeInTheDocument();
-  expect(within(counts).getByRole("button", { name: /ระดับน้ำตาล 3 รายการ/ })).toHaveAttribute("aria-pressed", "true");
+  expect(within(counts).getByRole("button", { name: /น้ำตาล 3 รายการ/ })).toHaveAttribute("aria-pressed", "true");
   fireEvent.click(screen.getByRole("button", { name: "ล้างตัวกรอง" }));
-  expect(await screen.findByText("124 mmHg")).toBeInTheDocument();
+  expect(await screen.findByText("124 mmHg")).toBeVisible();
 });
 
 test("verification requests pending members and requires explicit confirmation before approving", async () => {
@@ -328,7 +336,7 @@ test("Thai CV risk uses the exact 10 and 20 percent boundaries and remains separ
     ...healthResponse.data.data, records: filters.riskLevel === "moderate" ? rows.filter(row => [10,20].includes(row.thaiCvRisk.score)) : rows,
   } } }));
   renderDashboard();
-  const table = await screen.findByRole("table", {
+  const table = await screen.findByRole("region", {
     name: "บันทึกสุขภาพสมาชิก",
   });
   expect(within(table).getByText("0% · ความเสี่ยงต่ำ")).toBeInTheDocument();
@@ -344,9 +352,9 @@ test("Thai CV risk uses the exact 10 and 20 percent boundaries and remains separ
   expect(within(table).getByText(">30% · ความเสี่ยงสูง")).toBeInTheDocument();
   fireEvent.click(screen.getByText("ตัวกรองเพิ่มเติมและการเรียงลำดับ"));
   fireEvent.change(screen.getByLabelText("ความเสี่ยง Thai CV"), { target: { value: "moderate" } });
-  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,20,expect.objectContaining({ riskLevel: "moderate" })));
-  const filtered = await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" });
-  expect(within(filtered).getAllByRole("row")).toHaveLength(3);
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,8,expect.objectContaining({ riskLevel: "moderate" }), expect.any(Object)));
+  const filtered = await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" });
+  expect(within(filtered).getAllByRole("article")).toHaveLength(2);
   expect(within(filtered).queryByText("9.99% · ความเสี่ยงต่ำ")).not.toBeInTheDocument();
 });
 
@@ -356,7 +364,7 @@ test("legacy BMI risk never becomes a Thai CV score and unavailable remains filt
     ...healthResponse.data.data, records: filters.riskLevel === "high" ? [] : [row],
   } } }));
   renderDashboard();
-  const table = await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" });
+  const table = await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" });
   expect(within(table).getByText("ยังไม่มีผลประเมิน")).toBeInTheDocument();
   expect(within(table).getByText("มีเฉพาะค่า BMI เดิม")).toBeInTheDocument();
   expect(within(table).getByText("30.1 กก./ม²")).toBeInTheDocument();
@@ -364,7 +372,7 @@ test("legacy BMI risk never becomes a Thai CV score and unavailable remains filt
   fireEvent.change(screen.getByLabelText("ความเสี่ยง Thai CV"), { target: { value: "high" } });
   expect(await screen.findByText("ไม่พบข้อมูลที่ตรงกับตัวกรอง")).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("ความเสี่ยง Thai CV"), { target: { value: "unavailable" } });
-  expect(await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" })).toBeInTheDocument();
+  expect(await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" })).toBeInTheDocument();
 });
 
 test("risk overview opens the entire registry with a server risk filter", async () => {
@@ -386,6 +394,7 @@ test("risk overview opens the entire registry with a server risk filter", async 
     },
   });
   renderDashboard();
+  fireEvent.click(screen.getByText("ภาพรวม Thai CV Risk ของสมาชิก"));
   fireEvent.click(
     await screen.findByRole("button", { name: /ความเสี่ยงสูง 1/ }),
   );
@@ -478,37 +487,37 @@ test("all real measurements remain visible and clinical severity is separate fro
     { ...healthRecord, _id: "hba1c-only", type: "sugar", value: { hba1c: 6.5 }, reviewStatus: "approved", thaiCvRisk: risk, user: { ...member, thaiCvRisk: { status: "calculated", score: 29 } } },
     { ...healthRecord, _id: "full-lipids", type: "cholesterol", value: { total: 180, ldl: 190, hdl: 55, triglyceride: 120 }, reviewStatus: "pending", thaiCvRisk: risk },
     { ...healthRecord, _id: "pulse", value: { systolic: 137, diastolic: 92, pulse: 72 }, reviewStatus: "approved", thaiCvRisk: risk },
-    { ...healthRecord, _id: "legacy-bmi", type: "bmi", value: {}, bmi: 30.1 },
+    { ...healthRecord, _id: "legacy-bmi", type: "bmi", value: {}, bmi: 30.1, reviewStatus: undefined },
   ];
   getDashboardHealth.mockResolvedValue({ data: { ...healthResponse.data, data: { ...healthResponse.data.data, records } } });
   renderDashboard();
-  const table = await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" });
+  const table = await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" });
   for (const text of ["6.5 %", "180 mg/dL", "190 mg/dL", "55 mg/dL", "120 mg/dL", "137 mmHg", "92 mmHg", "72 ครั้ง/นาที", "30.1 กก./ม²"])
     expect(within(table).getByText(text, { exact: true })).toBeInTheDocument();
-  const sugar = within(table).getAllByRole("row").find(row => within(row).queryByText("6.5 %"));
+  const sugar = within(table).getAllByRole("article").find(row => within(row).queryByText("6.5 %"));
   expect(within(sugar).getByText(/./, { selector: ".admin-record-level-high" })).toBeInTheDocument();
   expect(within(sugar).getByText("6.25% · ความเสี่ยงต่ำ")).toBeInTheDocument();
   expect(sugar).not.toHaveTextContent(/29%|— mg\/dL/); expect(table).not.toHaveTextContent(member.citizenId);
-  const legacy = within(table).getAllByRole("row").find(row => within(row).queryByText("30.1 กก./ม²"));
-  expect(within(legacy).getByText(/./, { selector: ".admin-record-level-neutral" })).toBeInTheDocument();
-  expect(legacy).toHaveTextContent("ไม่ระบุสถานะรายการ"); expect(legacy).not.toHaveTextContent("ยืนยันแล้ว");
+  const legacy = within(table).getAllByRole("article").find(row => within(row).queryByText("30.1 กก./ม²"));
+  expect(within(legacy).queryByText(/./, { selector: ".admin-record-level" })).not.toBeInTheDocument();
+  expect(legacy).toHaveTextContent("ไม่ทราบสถานะรายการ"); expect(legacy).not.toHaveTextContent("ยืนยันแล้ว");
   expect(screen.getByText(/เมื่อไม่มีวันเกิดจะใช้เกณฑ์ผู้ใหญ่ทั่วไป/)).toBeInTheDocument();
 });
 
 test("health pagination and each filter use the server contract and changing a filter resets the page", async () => {
   getDashboardHealth.mockResolvedValue({ data: { ...healthResponse.data, hasMore: true, total: 45 } });
-  renderDashboard(); await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" });
+  renderDashboard(); await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" });
   fireEvent.click(screen.getByRole("button", { name: "หน้าถัดไป" }));
-  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(2,20,expect.objectContaining({ type: "all" })));
-  fireEvent.change(screen.getByLabelText("ประเภทบันทึก"), { target: { value: "sugar" } });
-  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,20,expect.objectContaining({ type: "sugar" })));
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(2,8,expect.objectContaining({ type: "all" }), expect.any(Object)));
+  fireEvent.click(within(screen.getByRole("region", { name: "จำนวนบันทึกสุขภาพแยกตามประเภท" })).getByRole("button", { name: /น้ำตาล/ }));
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,8,expect.objectContaining({ type: "sugar" }), expect.any(Object)));
   fireEvent.change(screen.getByLabelText("สถานะรายการ"), { target: { value: "pending" } });
   fireEvent.click(screen.getByText("ตัวกรองเพิ่มเติมและการเรียงลำดับ"));
   fireEvent.change(screen.getByLabelText("ความเสี่ยง Thai CV"), { target: { value: "high" } });
   fireEvent.change(screen.getByLabelText("การจัดกลุ่ม BMI"), { target: { value: "risk_high" } });
   fireEvent.change(screen.getByLabelText("เรียงลำดับบันทึก"), { target: { value: "oldest" } });
   fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาบันทึกสุขภาพ" }), { target: { value: "เชียงใหม่" } });
-  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,20,{ search: "เชียงใหม่", type: "sugar", reviewStatus: "pending", riskLevel: "high", bmiLevel: "risk_high", sort: "oldest" }));
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,8,{ search: "เชียงใหม่", type: "sugar", reviewStatus: "pending", riskLevel: "high", bmiLevel: "risk_high", sort: "oldest" }, expect.any(Object)));
   expect(screen.getByText(/ค้นหาและกรองรายการทั้งระบบ/)).toBeInTheDocument();
 });
 
@@ -521,7 +530,7 @@ test("a late response for an old health search cannot replace the newest server 
   renderDashboard(); await screen.findByText("เริ่มต้น ทดสอบ");
   const search = screen.getByRole("textbox", { name: "ค้นหาบันทึกสุขภาพ" });
   fireEvent.change(search, { target: { value: "เก่า" } });
-  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,20,expect.objectContaining({ search: "เก่า" })));
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1,8,expect.objectContaining({ search: "เก่า" }), expect.any(Object)));
   fireEvent.change(search, { target: { value: "ใหม่" } });
   expect(await screen.findByText("ใหม่ ทดสอบ")).toBeInTheDocument();
   await act(async () => { finishOld({ data: { ...healthResponse.data, data: { ...healthResponse.data.data, records: [{ ...healthRecord, user: { ...member, firstName: "เก่า" } }] } } }); });
@@ -533,10 +542,10 @@ test("an older backend cannot silently display unfiltered data as server-wide re
   getDashboardHealth.mockResolvedValueOnce({ data: { ...healthResponse.data, data: legacy } });
   renderDashboard();
   expect(await screen.findByText(/API ยังไม่รองรับการค้นหาทั้งระบบ/)).toBeInTheDocument();
-  expect(screen.queryByRole("table", { name: "บันทึกสุขภาพสมาชิก" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "บันทึกสุขภาพสมาชิก" })).not.toBeInTheDocument();
   expect(screen.queryByText("124 mmHg")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "ลองอีกครั้ง" }));
-  expect(await screen.findByRole("table", { name: "บันทึกสุขภาพสมาชิก" })).toBeInTheDocument();
+  expect(await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" })).toBeInTheDocument();
 });
 
 test("member drawer history displays HbA1c-only results and every supplied measurement without inventing missing FBS", async () => {
@@ -554,4 +563,92 @@ test("member drawer history displays HbA1c-only results and every supplied measu
     expect(drawer).toHaveTextContent(text);
   expect(within(drawer).queryByText("— mg/dL")).not.toBeInTheDocument();
   expect(getAdminUser).toHaveBeenCalledWith("member-1");
+});
+
+test("pending, rejected and unknown records show raw values without approved clinical interpretation or CVD advice", async () => {
+  getDashboardHealth.mockResolvedValue({ data: { ...healthResponse.data, data: { ...healthResponse.data.data, records: ["pending", "rejected", "unknown"].map((status, index) => ({
+    ...healthRecord, _id: `unreviewed-${index}`, reviewStatus: status,
+    value: { systolic: 190, diastolic: 125 }, thaiCvRisk: { status: "calculated", score: 31 },
+  })) } } });
+  renderDashboard();
+  const records = await screen.findByRole("region", { name: "บันทึกสุขภาพสมาชิก" });
+  expect(within(records).getAllByText("190 mmHg")).toHaveLength(3);
+  expect(within(records).queryByText("แปลผลจากค่าตามวันที่บันทึก")).not.toBeInTheDocument();
+  expect(within(records).queryByText(/>30%/)).not.toBeInTheDocument();
+  expect(within(records).queryByText("ควรทำอย่างไรต่อ")).not.toBeInTheDocument();
+  expect(within(records).getAllByText("รอตรวจสอบข้อมูล · ยังไม่นำมาแปลผลสุขภาพ", { exact: false }).length).toBeGreaterThan(0);
+  expect(within(records).getAllByText("รายการนี้ถูกยกเลิก · ไม่นำมาใช้สรุปผลสุขภาพ", { exact: false }).length).toBeGreaterThan(0);
+  fireEvent.change(screen.getByLabelText("สถานะรายการ"), { target: { value: "unknown" } });
+  await waitFor(() => expect(getDashboardHealth).toHaveBeenLastCalledWith(1, 8, expect.objectContaining({ reviewStatus: "unknown" }), expect.any(Object)));
+});
+
+test("work overview distinguishes pending health records from pending members and its action opens the review queue", async () => {
+  renderDashboard();
+  const overview = screen.getByRole("region", { name: "ภาพรวมระบบและงานรอตรวจสอบ" });
+  const pendingRecords = await within(overview).findByRole("button", { name: /บันทึกรอตรวจสอบ 3 รายการ/ });
+  expect(within(overview).getByRole("button", { name: /สมาชิกรอยืนยัน 1 คน/ })).toBeVisible();
+  expect(screen.getByRole("link", { name: /ติดตามสุขภาพรายบุคคล กราฟย้อนหลัง/ })).toHaveAttribute("href", "/admin/progress");
+  fireEvent.click(pendingRecords);
+  expect(window.location.search).toBe("?view=reviews");
+  await waitFor(() => expect(getReviewQueue).toHaveBeenCalledWith(1, 20, { status: "pending" }));
+  expect(screen.getByRole("heading", { level: 1, name: "ตรวจสอบบันทึก" })).toBeVisible();
+});
+
+test("missing counters on the older summary contract remain unknown instead of turning into a false zero", async () => {
+  getDashboardSummary.mockResolvedValue({ data: { data: { totalUsers: 7, totalHealthRecords: 11, todayHealthRecords: 2 } } });
+  renderDashboard();
+  expect(await screen.findByText(/API ข้อมูลสรุปยังเป็นรุ่นเดิม/)).toBeVisible();
+  const overview = screen.getByRole("region", { name: "ภาพรวมระบบและงานรอตรวจสอบ" });
+  expect(within(overview).getByRole("button", { name: /บันทึกรอตรวจสอบ — รายการ/ })).toBeVisible();
+  expect(screen.getByText("ยังไม่มีเวลายืนยันการอัปเดตข้อมูลสรุป")).toBeVisible();
+});
+
+test("record date uses submitted time and detailed clinical advice is deliberately opened", async () => {
+  getDashboardHealth.mockResolvedValue({ data: { ...healthResponse.data, data: { ...healthResponse.data.data, records: [{
+    ...healthRecord, submittedAt: "2025-01-02T08:30:00Z", thaiCvRisk: { status: "calculated", score: 6.25 },
+  }] } } });
+  renderDashboard();
+  const record = await screen.findByRole("article", { name: "บันทึกความดันโลหิตของ สมาชิก ทดสอบ" });
+  expect(within(record).getByText(/^วันที่บันทึก/)).toHaveTextContent("2568");
+  expect(within(record).getByText("ควรทำอย่างไรต่อ")).not.toBeVisible();
+  expect(within(record).getByText("6.25% · ความเสี่ยงต่ำ")).not.toBeVisible();
+  fireEvent.click(within(record).getByText("การแปลผลและคำแนะนำ"));
+  expect(within(record).getByText("ควรทำอย่างไรต่อ")).toBeVisible();
+  expect(within(record).getByText("6.25% · ความเสี่ยงต่ำ")).toBeVisible();
+  expect(within(record).getByText(/หากเป็นผลเดิมให้ตรวจสอบอาการและผลตรวจล่าสุดก่อน/)).toBeVisible();
+});
+
+test("changing a page hides old clinical cards immediately, cancels the old read and ignores its late response", async () => {
+  let finishPage;
+  getDashboardHealth.mockImplementation((page) => page === 2 ? new Promise(resolve => { finishPage = resolve; })
+    : Promise.resolve({ data: { ...healthResponse.data, hasMore: true, total: 16 } }));
+  renderDashboard();
+  await screen.findByText("124 mmHg");
+  const firstOptions = getDashboardHealth.mock.calls[0][3];
+  expect(firstOptions.isCurrent()).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "หน้าถัดไป" }));
+  expect(screen.queryByText("124 mmHg")).not.toBeInTheDocument();
+  expect(firstOptions.signal.aborted).toBe(true);
+  await waitFor(() => expect(finishPage).toBeDefined());
+  const oldPageOptions = getDashboardHealth.mock.calls[1][3];
+  fireEvent.click(within(screen.getByRole("region", { name: "จำนวนบันทึกสุขภาพแยกตามประเภท" })).getByRole("button", { name: /น้ำตาล/ }));
+  expect(await screen.findByText("124 mmHg")).toBeVisible();
+  expect(oldPageOptions.isCurrent()).toBe(false);
+  await act(async () => finishPage({ data: { ...healthResponse.data, data: { ...healthResponse.data.data, records: [{ ...healthRecord, user: { ...member, firstName: "ผลเก่า" } }] } } }));
+  expect(screen.queryByText("ผลเก่า ทดสอบ")).not.toBeInTheDocument();
+});
+
+test("failed refresh preserves the actual last successful summary timestamp and never reports a fresh clinical list", async () => {
+  renderDashboard();
+  await screen.findByText("124 mmHg");
+  const asOf = screen.getByText(/^ข้อมูลสรุป ณ /).textContent;
+  const firstOverviewOptions = getDashboardSummary.mock.calls[0][0];
+  getDashboardSummary.mockRejectedValueOnce(new Error("offline"));
+  getDashboardHealth.mockRejectedValueOnce(new Error("offline"));
+  fireEvent.click(screen.getByRole("button", { name: "รีเฟรชข้อมูล" }));
+  expect(firstOverviewOptions.signal.aborted).toBe(true);
+  expect(await screen.findByText(/กำลังแสดงข้อมูลที่โหลดสำเร็จครั้งล่าสุด/)).toBeVisible();
+  expect(screen.getByText(/^ข้อมูลสรุป ณ /)).toHaveTextContent(asOf);
+  expect(screen.getByText("ยังไม่มีเวลาอัปเดตรายการ")).toBeVisible();
+  expect(screen.queryByText("124 mmHg")).not.toBeInTheDocument();
 });

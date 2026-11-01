@@ -1,0 +1,121 @@
+/* The dashboard is a work overview. Detailed clinical reading opens within each record. */
+:root body .admin-dashboard-view .admin-home-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+:root body .admin-dashboard-view .admin-home-summary > :is(button, div) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; min-width: 0; padding: 20px; border: 1px solid #b6c9be; border-radius: 14px; background: #fff; color: #244235; text-align: left; font: inherit; }
+:root body .admin-dashboard-view .admin-home-summary > button { cursor: pointer; }
+:root body .admin-dashboard-view .admin-home-summary > button:hover { border-color: #147a64; background: #f2f9f5; }
+:root body .admin-dashboard-view .admin-home-summary > :is(button, div) > span:not(.admin-home-stat-icon) { font-size: 1.125rem; line-height: 1.6; }
+:root body .admin-dashboard-view .admin-home-stat-icon { grid-column: 2; grid-row: 1 / 3; display: grid; place-items: center; width: 40px; height: 40px; background: #e8f4ee; color: #176b51; border-radius: 11px; }
+:root body .admin-dashboard-view .admin-home-summary strong { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; color: #153c2d; font-size: 2rem; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+:root body .admin-dashboard-view .admin-home-summary strong small { color: #42594f; font-size: 1.125rem; font-weight: 500; }
+:root body .admin-dashboard-view .admin-home-summary .admin-home-stat-note { grid-column: 1 / -1; color: #42594f; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-home-summary .admin-home-stat-pending { border-top: 4px solid #a07815; padding-top: 17px; }
+:root body .admin-dashboard-view .admin-home-stat-pending .admin-home-stat-icon { color: #795900; background: #fff3cb; }
+:root body .admin-dashboard-view .admin-home-summary .admin-home-summary-asof { grid-column: 1 / -1; margin: 0; color: #42594f; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-home-work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px 24px; min-width: 0; padding: 24px; border: 1px solid #a5c7b5; border-left: 5px solid #11745d; border-radius: 14px; background: #f4faf6; }
+:root body .admin-dashboard-view .admin-home-work-heading { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+:root body .admin-dashboard-view .admin-home-work-heading > svg { margin-top: 5px; flex-shrink: 0; color: #11694e; }
+:root body .admin-dashboard-view .admin-home-work h2 { margin: 0; color: #193e2b; font-size: 1.375rem; line-height: 1.6; }
+:root body .admin-dashboard-view .admin-home-work p { margin: 3px 0 0; color: #42594f; }
+:root body .admin-dashboard-view .admin-home-work-actions { display: flex; flex-wrap: wrap; align-content: start; justify-content: flex-end; gap: 10px; }
+:root body .admin-dashboard-view .admin-home-work-actions button, :root body .admin-dashboard-view .admin-health-inline-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 50px; max-width: 100%; padding: 10px 14px; border: 1px solid #8bac99; border-radius: 9px; background: #fff; color: #175640; font: inherit; font-size: 1.125rem; font-weight: 600; line-height: 1.7; text-align: left; cursor: pointer; text-decoration: none; }
+:root body .admin-dashboard-view .admin-home-work-actions button:first-child { background: #116b54; border-color: #116b54; color: #fff; }
+:root body .admin-dashboard-view .admin-home-work-actions svg, :root body .admin-dashboard-view .admin-health-inline-action svg { flex-shrink: 0; }
+:root body .admin-dashboard-view .admin-home-quick-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 18px; border-top: 1px solid #c6dbcc; }
+:root body .admin-dashboard-view .admin-home-quick-actions > :is(button, a) { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 14px 16px; border: 1px solid #b6cbbe; border-radius: 10px; background: #fff; color: #244a36; font: inherit; font-size: 1.125rem; font-weight: 600; line-height: 1.7; text-align: left; text-decoration: none; cursor: pointer; }
+:root body .admin-dashboard-view .admin-home-quick-actions svg { flex: 0 0 21px; }
+:root body .admin-dashboard-view .admin-home-quick-actions svg:last-child { margin-left: auto; }
+:root body .admin-dashboard-view .admin-home-quick-actions small { display: block; color: #42594f; font-size: 1.125rem; font-weight: 400; }
+:root body .admin-dashboard-view .admin-home-risk-details { min-width: 0; border: 1px solid #b6c9be; border-radius: 12px; background: #fff; }
+:root body .admin-dashboard-view .admin-home-risk-details > summary { display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 14px 20px; color: #244a36; cursor: pointer; list-style: none; font-weight: 600; }
+:root body .admin-dashboard-view .admin-home-risk-details > summary::-webkit-details-marker { display: none; }
+:root body .admin-dashboard-view .admin-home-risk-details > summary > svg { flex-shrink: 0; }
+:root body .admin-dashboard-view .admin-home-risk-details > summary small { display: block; color: #42594f; font-size: 1.125rem; font-weight: 400; }
+:root body .admin-dashboard-view .admin-home-risk-details > summary::after { content: "+"; margin-left: auto; font-size: 1.75rem; }
+:root body .admin-dashboard-view .admin-home-risk-details[open] > summary::after { content: "−"; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-overview { margin: 0; border: 0; border-top: 1px solid #c5d5ca; border-radius: 0 0 12px 12px; box-shadow: none; }
+:root body .admin-dashboard-view .admin-home-risk-details :is(.admin-risk-cards, .admin-risk-card) { min-width: 0; max-width: 100%; box-sizing: border-box; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-card .badge { max-width: 100%; box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-card > strong { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 2rem; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-card > strong small { margin-left: 0; color: #42594f; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-card > span:last-of-type { color: #42594f; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-overview-footer { min-width: 0; color: #42594f; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-home-risk-details .admin-risk-overview-footer button { min-width: 0; max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-home-category-heading { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 20px 24px 12px; color: #244235; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-home-category-heading > span { color: #42594f; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-home-category-tabs { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 24px 18px; }
+:root body .admin-dashboard-view .admin-home-category-tabs button { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 50px; padding: 9px 12px; border: 1px solid #9bb5a4; border-radius: 9px; color: #2c4e3d; background: #fff; font: inherit; font-size: 1.125rem; line-height: 1.6; cursor: pointer; }
+:root body .admin-dashboard-view .admin-home-category-tabs button.is-selected { background: #116b54; color: #fff; border-color: #116b54; box-shadow: 0 0 0 2px #116b54; }
+:root body .admin-dashboard-view .admin-home-category-tabs strong { display: inline-flex; gap: 4px; align-items: baseline; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-home-category-tabs small { font-size: 1.125rem; font-weight: 400; }
+:root body .admin-dashboard-view .admin-record-filters { grid-template-columns: minmax(0, 2fr) minmax(190px, 1fr) auto; border-top: 1px solid #d3dfd6; }
+:root body .admin-dashboard-view .admin-home-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 18px; padding: 0 24px 24px; min-width: 0; }
+:root body .admin-dashboard-view .admin-health-card { --record-accent: #ac4052; display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 20px; border: 1px solid #b8ccbe; border-top: 5px solid var(--record-accent); border-radius: 12px; background: #fff; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-health-card-sugar { --record-accent: #2664aa; }
+:root body .admin-dashboard-view .admin-health-card-cholesterol { --record-accent: #8a6509; }
+:root body .admin-dashboard-view .admin-health-card-bmi { --record-accent: #147867; }
+:root body .admin-dashboard-view .admin-health-card-person { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; justify-content: space-between; }
+:root body .admin-dashboard-view .admin-health-card-person > div { min-width: 0; flex: 1 1 170px; }
+:root body .admin-dashboard-view .admin-health-card h3 { margin: 0 0 3px; color: #183d2b; font-size: 1.375rem; font-weight: 700; line-height: 1.6; }
+:root body .admin-dashboard-view .admin-health-card-person > div > span { display: block; color: #42594f; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-health-person-button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 8px 10px; border: 1px solid #9eb7a8; border-radius: 8px; color: #215d43; background: #f5faf7; font: inherit; font-size: 1.125rem; cursor: pointer; }
+:root body .admin-dashboard-view .admin-health-person-button svg { flex-shrink: 0; }
+:root body .admin-dashboard-view .admin-health-card .admin-health-card-date { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: #42594f; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-health-card-date svg { flex-shrink: 0; margin-top: 4px; }
+:root body .admin-dashboard-view .admin-health-card-category { display: flex; align-items: center; gap: 9px; color: var(--record-accent); font-size: 1.125rem; line-height: 1.6; }
+:root body .admin-dashboard-view .admin-health-card-category svg { flex-shrink: 0; }
+:root body .admin-dashboard-view .admin-health-card-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-width: 0; margin: 0; padding: 16px; border-radius: 10px; background: #f0f6f2; }
+:root body .admin-dashboard-view .admin-health-card-values > div { min-width: 0; }
+:root body .admin-dashboard-view .admin-health-card-values dt { font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-health-card-values dd { font-size: 1.5rem; line-height: 1.6; color: #173e2b; font-weight: 700; font-variant-numeric: tabular-nums; }
+:root body .admin-dashboard-view .admin-health-card-review { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 10px; padding-bottom: 14px; border-bottom: 1px solid #d6e1d9; }
+:root body .admin-dashboard-view .admin-health-card-review > span:first-child { color: #42594f; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-health-card .badge { font-size: 1.125rem; line-height: 1.7; white-space: normal; }
+:root body .admin-dashboard-view .admin-health-card-result { display: grid; justify-items: start; gap: 7px; }
+:root body .admin-dashboard-view .admin-health-card-result-label { color: #42594f; font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-health-card .admin-record-level { min-width: 0; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-health-card .admin-health-card-unreviewed { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 12px; border-radius: 8px; background: #f1f4f7; color: #3b5260; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-health-card-unreviewed svg { margin-top: 4px; flex-shrink: 0; }
+:root body .admin-dashboard-view .admin-health-card-details { min-width: 0; border-top: 1px solid #d6e1d9; }
+:root body .admin-dashboard-view .admin-health-card-details > summary { min-height: 48px; padding: 12px 0 0; color: #175e43; cursor: pointer; font-weight: 600; }
+:root body .admin-dashboard-view .admin-health-card-details-body { display: grid; gap: 14px; padding-top: 16px; min-width: 0; }
+:root body .admin-dashboard-view .admin-health-card-details-body :is(p, li, a, h4) { margin-top: 0; margin-bottom: 0; font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-health-card-details-body :is(section, .admin-health-next-action) { display: grid; gap: 8px; }
+:root body .admin-dashboard-view .admin-health-card-details-body h4 { color: #244235; }
+:root body .admin-dashboard-view .admin-health-card-details-body ul { padding-left: 1.25em; margin: 0; }
+:root body .admin-dashboard-view .admin-health-card-details-body a:not(.admin-health-inline-action) { color: #0c6254; text-decoration: underline; }
+:root body .admin-dashboard-view .admin-health-card-cv { border-top: 1px solid #d6e1d9; padding-top: 16px; }
+:root body .admin-dashboard-view .admin-home-summary button:focus-visible, :root body .admin-dashboard-view :is(.admin-home-work, .admin-home-category-tabs, .admin-health-card) :is(button, a, summary):focus-visible, :root body .admin-dashboard-view .admin-home-risk-details > summary:focus-visible { outline: 3px solid #08776b; outline-offset: 4px; }
+@media (max-width: 1390px) {
+  :root body .admin-dashboard-view .admin-home-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root body .admin-dashboard-view .admin-home-work { grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-home-work-actions { justify-content: flex-start; }
+}
+@media (max-width: 1160px) {
+  :root body .admin-dashboard-view .admin-home-record-grid { grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-record-filters { grid-template-columns: minmax(0, 1fr) auto; }
+  :root body .admin-dashboard-view .admin-record-filters > .admin-search { grid-column: 1 / -1; }
+}
+@media (max-width: 740px) {
+  :root body .admin-dashboard-view .admin-home-risk-details .admin-risk-cards { grid-template-columns: minmax(0, 1fr); padding: 0 16px 18px; }
+  :root body .admin-dashboard-view .admin-home-risk-details .admin-risk-card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  :root body .admin-dashboard-view .admin-home-risk-details .admin-risk-card > strong { grid-column: 1; grid-row: auto; }
+  :root body .admin-dashboard-view .admin-home-summary { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+  :root body .admin-dashboard-view .admin-home-quick-actions { grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-home-work { padding: 18px; }
+  :root body .admin-dashboard-view .admin-home-work-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-home-category-heading { padding: 18px 16px 12px; }
+  :root body .admin-dashboard-view .admin-home-category-tabs { padding: 0 16px 18px; gap: 9px; }
+  :root body .admin-dashboard-view .admin-home-category-tabs button { flex: 1 1 140px; justify-content: center; }
+  :root body .admin-dashboard-view .admin-home-record-grid { padding: 0 16px 18px; }
+  :root body .admin-dashboard-view .admin-health-card { padding: 16px; }
+  :root body .admin-dashboard-view .admin-record-filters { grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-home-risk-details > summary { padding: 14px 16px; }
+}
+@media (max-width: 420px) {
+  :root body .admin-dashboard-view .admin-home-summary > :is(button, div) { padding: 16px; grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-home-summary .admin-home-stat-pending { padding-top: 13px; }
+  :root body .admin-dashboard-view .admin-home-stat-icon { display: none; }
+  :root body .admin-dashboard-view .admin-health-card-values { grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-home-category-tabs button { flex-basis: 100%; }
+  :root body .admin-dashboard-view .admin-home-quick-actions > :is(button, a) { flex-wrap: wrap; }
+}
