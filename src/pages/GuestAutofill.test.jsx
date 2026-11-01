@@ -11,6 +11,7 @@ const field = label => screen.getByLabelText(label);
 const fill = (label, value) => fireEvent.change(field(label), { target: { value } });
 const next = () => fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
 const nextTimes = count => { for (let i = 0; i < count; i += 1) next(); };
+const choose = (...titles) => titles.forEach(title => fireEvent.click(screen.getByRole("checkbox", { name: `บันทึก${title}` })));
 const accept = () => {
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ }));
@@ -75,8 +76,8 @@ test("switching people immediately clears the old profile, health draft and cons
   const firstOptions = getGuestProfile.mock.calls[0][1];
   fill(/^ชื่อ/, "คนเดิม"); fill(/^นามสกุล/, "ทดสอบ"); next();
   fill("สถานะการสูบบุหรี่", "current"); fireEvent.click(screen.getByRole("checkbox", { name: "เบาหวาน" }));
-  next(); fill(/^ความดันตัวบน/, "120"); fill(/^ความดันตัวล่าง/, "80"); nextTimes(4); accept();
-  for (let i = 0; i < 6; i += 1) fireEvent.click(screen.getByRole("button", { name: "ย้อนกลับ" }));
+  next(); choose("ความดันโลหิต"); next(); fill(/^ความดันตัวบน/, "120"); fill(/^ความดันตัวล่าง/, "80"); next(); accept();
+  for (let i = 0; i < 4; i += 1) fireEvent.click(screen.getByRole("button", { name: "ย้อนกลับ" }));
   fill(/^เลขบัตรประชาชน/, idB);
   expect(firstOptions.signal.aborted).toBe(true); expect(firstOptions.isCurrent()).toBe(false);
   expect(field(/^ชื่อ/)).toHaveValue(""); expect(field(/^ความดันตัวบน/)).toHaveValue(null);
@@ -91,7 +92,7 @@ test.each(["not-found", "failed"])("%s lookup permits manual profile-only entry 
   if (outcome === "failed") getGuestProfile.mockRejectedValue(new Error("synthetic offline"));
   mount(); fill(/^เลขบัตรประชาชน/, idA); await advance(350);
   expect(screen.getByRole("status")).toHaveTextContent(outcome === "failed" ? "คุณสามารถกรอกข้อมูลเองต่อได้" : "ไม่พบข้อมูลเดิม");
-  fill(/^ชื่อ/, "กรอกเอง"); fill(/^นามสกุล/, "ทดสอบ"); nextTimes(6); accept();
+  fill(/^ชื่อ/, "กรอกเอง"); fill(/^นามสกุล/, "ทดสอบ"); nextTimes(3); accept();
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ })); });
   expect(screen.getByRole("heading", { name: "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว" })).toBeInTheDocument();
   expect(submitGuestHealth).toHaveBeenCalledWith(expect.objectContaining({ citizenId: idA, records: [], profile: expect.objectContaining({ firstName: "กรอกเอง" }) }), expect.any(Object));
@@ -111,7 +112,7 @@ test("submission freezes the entered snapshot so a late autofill cannot alter a 
   let finish; getGuestProfile.mockImplementationOnce(() => new Promise(done => { finish = done; }));
   submitGuestHealth.mockRejectedValueOnce({ response: { status: 500 } });
   mount(); fill(/^เลขบัตรประชาชน/, idA); await advance(350);
-  fill(/^ชื่อ/, "ข้อมูลครั้งนี้"); fill(/^นามสกุล/, "กรอกเอง"); nextTimes(6); accept();
+  fill(/^ชื่อ/, "ข้อมูลครั้งนี้"); fill(/^นามสกุล/, "กรอกเอง"); nextTimes(3); accept();
   const send = () => fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
   await act(async () => { send(); });
   const firstPayload = submitGuestHealth.mock.calls[0][0];
@@ -183,10 +184,10 @@ test("lookup retry preserves health and consent while submission cancels the ret
   mount(); fill(/^เลขบัตรประชาชน/, idA); await advance(350);
   expect(screen.getByRole("status")).toHaveTextContent("ระบบยังไม่พร้อมค้นหาข้อมูล");
   fill(/^ชื่อ/, "ข้อมูลที่กรอกเอง"); fill(/^นามสกุล/, "ทดสอบ"); nextTimes(2);
-  fill(/^ความดันตัวบน/, "120"); fill(/^ความดันตัวล่าง/, "80"); nextTimes(4); accept();
-  for (let i = 0; i < 6; i += 1) fireEvent.click(screen.getByRole("button", { name: "ย้อนกลับ" }));
+  choose("ความดันโลหิต"); next(); fill(/^ความดันตัวบน/, "120"); fill(/^ความดันตัวล่าง/, "80"); next(); accept();
+  for (let i = 0; i < 4; i += 1) fireEvent.click(screen.getByRole("button", { name: "ย้อนกลับ" }));
   fireEvent.click(screen.getByRole("button", { name: "ลองค้นหาอีกครั้ง" })); await advance(350);
-  expect(field(/^ความดันตัวบน/)).toHaveValue(120); nextTimes(6);
+  expect(field(/^ความดันตัวบน/)).toHaveValue(120); nextTimes(4);
   expect(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ })).toBeChecked(); expect(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ })).toBeChecked();
   const send = () => fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
   await act(async () => { send(); }); const firstPayload = submitGuestHealth.mock.calls[0][0];

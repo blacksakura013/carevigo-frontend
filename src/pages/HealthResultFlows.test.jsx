@@ -12,6 +12,7 @@ const person = { citizenId: "8900000000701", firstName: "สมใจ", lastName
 const fill = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const next = () => fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
 const nextTimes = count => { for (let i = 0; i < count; i += 1) next(); };
+const choose = (...titles) => titles.forEach(title => fireEvent.click(screen.getByRole("checkbox", { name: `บันทึก${title}` })));
 const accept = () => {
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ }));
@@ -29,7 +30,8 @@ test("accepted guest shows acute guidance before its separate ten-year risk and 
     thaiCvRisk: { status: "calculated", score: 12.34 }, records: [{ type: "cholesterol", value: { total: 999 } }] } } });
   render(<MemoryRouter initialEntries={["/guest"]}><GuestHealth /></MemoryRouter>);
   fill(/^เลขบัตรประชาชน/, person.citizenId); fill(/^ชื่อ/, person.firstName); fill(/^นามสกุล/, person.lastName);
-  nextTimes(2); fill(/^ความดันตัวบน/, "137"); fill(/^ความดันตัวล่าง/, "92"); next(); fill(/^น้ำตาลขณะอดอาหาร/, "343"); nextTimes(3); accept();
+  nextTimes(2); choose("ความดันโลหิต", "น้ำตาลในเลือด"); next();
+  fill(/^ความดันตัวบน/, "137"); fill(/^ความดันตัวล่าง/, "92"); next(); fill(/^น้ำตาลขณะอดอาหาร/, "343"); next(); accept();
   fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
   const accepted = await screen.findByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" });
   const result = within(accepted).getByRole("region", { name: "สรุปผลสุขภาพและคำแนะนำ" });
@@ -50,8 +52,9 @@ test("partial signed-in saves summarize successful sections only and add the fai
   addHealth.mockImplementationOnce(async () => ({ data: { data: {} } }))
     .mockRejectedValueOnce({ response: { status: 400 } }).mockResolvedValue({ data: { data: {} } });
   render(<MemoryRouter initialEntries={[`/health/${person.citizenId}`]}><Routes><Route path="/health/:citizenId" element={<AddHealth />} /></Routes></MemoryRouter>);
-  await screen.findByLabelText(/^ความดันตัวบน/); fill(/^ความดันตัวบน/, "137"); fill(/^ความดันตัวล่าง/, "92"); next();
-  fill(/^น้ำตาลขณะอดอาหาร/, "343"); nextTimes(3); accept();
+  await screen.findByRole("checkbox", { name: "บันทึกความดันโลหิต" }); choose("ความดันโลหิต", "น้ำตาลในเลือด"); next();
+  fill(/^ความดันตัวบน/, "137"); fill(/^ความดันตัวล่าง/, "92"); next();
+  fill(/^น้ำตาลขณะอดอาหาร/, "343"); next(); accept();
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ", exact: true }));
   const result = await screen.findByRole("region", { name: "สรุปผลสุขภาพและคำแนะนำ" });
   await screen.findByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" });

@@ -107,6 +107,7 @@ beforeEach(() => {
 });
 const fill = (label, value) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const choose = (...titles) => titles.forEach(title => fireEvent.click(screen.getByRole("checkbox", { name: `บันทึก${title}` })));
 const agreementBoxes = (staff = false) => [
   screen.getByRole("checkbox", { name: /ฉันยอมรับ/ }),
   ...(staff
@@ -256,6 +257,7 @@ test("retries only failed health sections and omits blank optional measures", as
   });
   render(<AddHealth />);
   await screen.findByText("ผู้ทดสอบ");
+  choose("น้ำตาลในเลือด", "ไขมันในเลือด");
   fill("น้ำตาลขณะอดอาหาร (FBS)", "95");
   fill("ไขมันรวม (Total cholesterol)", "180");
   acceptAgreements(true);
@@ -307,6 +309,7 @@ test("validates incomplete BP before sending and allows standalone BMI using ser
   });
   render(<AddHealth />);
   await screen.findByText("ผู้ทดสอบ");
+  choose("ความดันโลหิต", "น้ำหนักและส่วนสูง");
   fill("ความดันตัวบน (SYS)", "120");
   acceptAgreements(true);
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
@@ -455,6 +458,7 @@ test("guests submit without lookup or login and retry the identical batch with t
   fill("เลขบัตรประชาชน", "1234567890123");
   fill("ชื่อ", "ทดสอบ");
   fill("นามสกุล", "ตัวอย่าง");
+  choose("ความดันโลหิต", "น้ำตาลในเลือด");
   fill("ความดันตัวบน (SYS)", "120");
   fill("ความดันตัวล่าง (DIA)", "80");
   fill("น้ำตาลขณะอดอาหาร (FBS)", "95");
@@ -516,6 +520,7 @@ test("guest acknowledgement summarizes only the submitted entry and a new entry 
   fill("เลขบัตรประชาชน", "1234567890123");
   fill("ชื่อ", "ทดสอบ");
   fill("นามสกุล", "ตัวอย่าง");
+  choose("ความดันโลหิต");
   fill("ความดันตัวบน (SYS)", "120");
   fill("ความดันตัวล่าง (DIA)", "80");
   acceptAgreements();
@@ -595,6 +600,7 @@ test("records blood pressure without fabricating an unavailable pulse", async ()
   addHealth.mockResolvedValue({ data: { data: { recordId: "bp-1" } } });
   render(<AddHealth />);
   await screen.findByText("ผู้ทดสอบ");
+  choose("ความดันโลหิต");
   fill("ความดันตัวบน (SYS)", "120");
   fill("ความดันตัวล่าง (DIA)", "80");
   acceptAgreements(true);
@@ -640,6 +646,7 @@ test.each([
     addHealth.mockResolvedValue({ data: { data: { recordId: "sugar-1" } } });
     render(<AddHealth />);
     await screen.findByText(`${person.firstName} ${person.lastName}`);
+    choose("น้ำตาลในเลือด");
     fill("น้ำตาลขณะอดอาหาร (FBS)", "95");
     write = addHealth;
     button = screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" });
@@ -659,6 +666,7 @@ test.each([
     fill("เลขบัตรประชาชน", person.citizenId);
     fill("ชื่อ", person.firstName);
     fill("นามสกุล", person.lastName);
+    choose("น้ำตาลในเลือด");
     fill("น้ำตาลขณะอดอาหาร (FBS)", "95");
     write = submitGuestHealth;
     button = screen.getByRole("button", { name: "ส่งข้อมูลเพื่อรอตรวจสอบ" });

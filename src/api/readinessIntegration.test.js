@@ -146,7 +146,11 @@ test("an upstream mutation failure invalidates only the next readiness check and
 function fillGuest() {
   for (const [label, value] of [[/^เลขบัตรประชาชน/, "1234567890123"], [/^ชื่อ/, "สมใจ"], [/^นามสกุล/, "ทดสอบ"]])
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
-  for (let step = 0; step < 6; step++) fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
+  for (let step = 0; step < 2; step++) fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
+  const categories = screen.getAllByRole("checkbox", { name: /^บันทึก/ });
+  expect(categories).toHaveLength(4);
+  categories.forEach(category => expect(category).not.toBeChecked());
+  fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ }));
   fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));

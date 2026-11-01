@@ -30,8 +30,9 @@ beforeEach(() => {
 test.each([true, false])("all measurements may be skipped without writing records or requiring consent (patient=%s)", async patient => {
   hasPatientSession.mockReturnValue(patient);
   showHealth();
-  await screen.findByLabelText(/^ความดันตัวบน/);
-  for (let step = 0; step < 4; step++) next();
+  await screen.findByRole("checkbox", { name: "บันทึกความดันโลหิต" });
+  expect(screen.getAllByRole("checkbox").every(checkbox => !checkbox.checked)).toBe(true);
+  next();
   expect(screen.getByText("ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ สามารถข้ามผลตรวจได้ทุกหมวด")).toBeVisible();
   expect(screen.queryByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "ข้ามการบันทึกครั้งนี้" }));
@@ -42,10 +43,10 @@ test.each([true, false])("all measurements may be skipped without writing record
 test("one HbA1c result may be saved while all other categories and FBS stay blank", async () => {
   hasPatientSession.mockReturnValue(true);
   showHealth();
-  await screen.findByLabelText(/^ความดันตัวบน/);
+  fireEvent.click(await screen.findByRole("checkbox", { name: "บันทึกน้ำตาลในเลือด" }));
   next();
   fireEvent.change(screen.getByLabelText(/^น้ำตาลสะสม/), { target: { value: "5.8" } });
-  for (let step = 0; step < 3; step++) next();
+  next();
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ }));
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ", exact: true }));

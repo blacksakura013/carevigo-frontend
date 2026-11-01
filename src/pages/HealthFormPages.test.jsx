@@ -20,6 +20,7 @@ const next = () => fireEvent.click(screen.getByRole("button", { name: "ถัด
 const back = () => fireEvent.click(screen.getByRole("button", { name: "ย้อนกลับ" }));
 const nextTimes = (count) => { for (let index = 0; index < count; index += 1) next(); };
 const backTimes = (count) => { for (let index = 0; index < count; index += 1) back(); };
+const choose = (...titles) => titles.forEach(title => fireEvent.click(screen.getByRole("checkbox", { name: `บันทึก${title}` })));
 const accept = () => {
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ }));
@@ -68,7 +69,7 @@ test("guest reviews only the entered values, retains a failed submission for ret
   submitGuestHealth.mockRejectedValueOnce({ response: { status: 500 } })
     .mockResolvedValueOnce({ data: { data: { submissionId: "submission-1", recordIds: ["record-1"] } } });
   guest();
-  fillPersonal(); nextTimes(2); fillPressure(); nextTimes(4);
+  fillPersonal(); nextTimes(2); choose("ความดันโลหิต"); next(); fillPressure(); next();
   expect(screen.getByRole("region", { name: "ตรวจสอบผลตรวจที่กรอกครั้งนี้" })).toHaveTextContent("120 mmHg");
   expect(screen.getByRole("region", { name: "ตรวจสอบผลตรวจที่กรอกครั้งนี้" })).not.toHaveTextContent("ไขมันในเลือด");
   expect(field(/^ความดันตัวบน/)).not.toBeVisible();
@@ -105,10 +106,10 @@ test("guest review reflects all entered clinical values and confirmed conditions
   fill(/^ชนิดหรือตำแหน่งของมะเร็ง/, "เต้านม");
   fill("โรคประจำตัวอื่น ๆ", "  ภูมิแพ้, , หอบหืด  ");
   fireEvent.click(screen.getByRole("checkbox", { name: /ยืนยันว่าตรวจสอบข้อมูลโรคประจำตัวแล้ว/ }));
-  next(); fillPressure(); fill(/^ชีพจร/, "72");
+  next(); choose("ความดันโลหิต", "น้ำตาลในเลือด", "ไขมันในเลือด", "น้ำหนักและส่วนสูง"); next(); fillPressure(); fill(/^ชีพจร/, "72");
   next(); fill(/^น้ำตาลขณะอดอาหาร/, "95"); fill(/^น้ำตาลสะสม/, "5.6");
   next(); fill(/^ไขมันรวม/, "180"); fill("LDL cholesterol", "100"); fill("HDL cholesterol", "50"); fill(/^ไตรกลีเซอไรด์/, "120");
-  next(); fill(/^น้ำหนัก/, "60"); fill(/^ส่วนสูง/, "165"); next();
+  next(); fill(/^น้ำหนัก(?:\s*\*)?$/, "60"); fill(/^ส่วนสูง/, "165"); next();
   const personal = screen.getByRole("region", { name: "ตรวจสอบข้อมูลผู้รับบริการครั้งนี้" });
   for (const text of ["สมใจ ทดสอบ", "หญิง", "2523", "0812345678", "เลิกสูบบุหรี่แล้ว 18 เดือน", "เบาหวาน · มะเร็ง · ภูมิแพ้ · หอบหืด", "เต้านม", "ตรวจสอบแล้ว"])
     expect(personal).toHaveTextContent(text);
@@ -131,14 +132,14 @@ test("guest review reflects all entered clinical values and confirmed conditions
 });
 
 test("changing a guest citizen ID clears the previous person and measurements and requires fresh consent", () => {
-  guest(); fillPersonal(); nextTimes(2); fillPressure(); nextTimes(4); accept();
-  backTimes(6);
+  guest(); fillPersonal(); nextTimes(2); choose("ความดันโลหิต"); next(); fillPressure(); next(); accept();
+  backTimes(4);
   fill(/^เลขบัตรประชาชน/, "9999999999999");
   expect(field(/^ชื่อ/)).toHaveValue("");
   expect(field(/^ความดันตัวบน/)).toHaveValue(null);
   fill(/^ชื่อ/, "ผู้รับบริการใหม่");
   fill(/^นามสกุล/, "ทดสอบ");
-  nextTimes(6);
+  nextTimes(3);
   expect(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeChecked();
   expect(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ })).not.toBeChecked();
   expect(searchUser).not.toHaveBeenCalled();
@@ -147,7 +148,7 @@ test("changing a guest citizen ID clears the previous person and measurements an
 });
 
 test("final guest validation reveals and focuses an earlier invalid personal field", async () => {
-  guest(); fillPersonal(); fill(/^เบอร์โทรศัพท์/, "123"); nextTimes(2); fillPressure(); nextTimes(4); accept();
+  guest(); fillPersonal(); fill(/^เบอร์โทรศัพท์/, "123"); nextTimes(2); choose("ความดันโลหิต"); next(); fillPressure(); next(); accept();
   fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
   await waitFor(() => expect(field(/^เบอร์โทรศัพท์/)).toBeVisible());
   await waitFor(() => expect(field(/^เบอร์โทรศัพท์/)).toHaveFocus());
@@ -157,7 +158,7 @@ test("final guest validation reveals and focuses an earlier invalid personal fie
 
 test("a guest can submit profile and consent with every optional measurement page left blank", async () => {
   submitGuestHealth.mockResolvedValueOnce({ status: 202, data: { data: { submissionId: "profile-only", recordIds: [], profileOnly: true } } });
-  guest(); fillPersonal(); nextTimes(6); accept();
+  guest(); fillPersonal(); nextTimes(3); accept();
   fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
   await screen.findByRole("heading", { name: "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว" });
   expect(submitGuestHealth).toHaveBeenCalledWith(expect.objectContaining({ records: [] }), expect.objectContaining({ isCurrent: expect.any(Function) }));
@@ -170,6 +171,9 @@ test("health pages appear after profile lookup and cannot leave a partly filled 
   health();
   expect(screen.queryByRole("button", { name: "ถัดไป" })).not.toBeInTheDocument();
   await act(async () => { finishProfile({ data: { data: person } }); });
+  expect(screen.getByRole("checkbox", { name: "บันทึกความดันโลหิต" })).toBeVisible();
+  expect(field(/^ความดันตัวบน/)).not.toBeVisible();
+  choose("ความดันโลหิต", "น้ำตาลในเลือด"); next();
   expect(field(/^ความดันตัวบน/)).toBeVisible();
   fill(/^ความดันตัวบน/, "120"); next();
   expect(field(/^ความดันตัวล่าง/)).toHaveFocus();
@@ -188,8 +192,8 @@ test("health review retries only failed sections, preserves saved locks, and res
     return { data: { data: { type } } };
   });
   health();
-  await waitFor(() => expect(field(/^ความดันตัวบน/)).toBeVisible());
-  fillPressure(); next(); fill(/^น้ำตาลขณะอดอาหาร/, "95"); nextTimes(3); accept();
+  await screen.findByRole("checkbox", { name: "บันทึกความดันโลหิต" }); choose("ความดันโลหิต", "น้ำตาลในเลือด"); next();
+  fillPressure(); next(); fill(/^น้ำตาลขณะอดอาหาร/, "95"); next(); accept();
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
   await screen.findByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" });
   expect(addHealth).toHaveBeenCalledTimes(2);
@@ -199,11 +203,13 @@ test("health review retries only failed sections, preserves saved locks, and res
   await screen.findByRole("button", { name: "บันทึกครั้งใหม่" });
   expect(addHealth.mock.calls.map(([payload]) => payload.type)).toEqual(["blood_pressure", "sugar", "sugar"]);
   fireEvent.click(screen.getByRole("button", { name: "บันทึกครั้งใหม่" }));
-  await waitFor(() => expect(field(/^ความดันตัวบน/)).toBeVisible());
-  expect(field(/^ความดันตัวบน/)).not.toBeDisabled();
+  expect(screen.getByRole("checkbox", { name: "บันทึกความดันโลหิต" })).toBeVisible();
+  expect(screen.getByRole("checkbox", { name: "บันทึกความดันโลหิต" })).not.toBeChecked();
+  expect(field(/^ความดันตัวบน/)).not.toBeVisible();
+  expect(field(/^ความดันตัวบน/)).toBeDisabled();
   expect(field(/^ความดันตัวบน/)).toHaveValue(null);
   expect(field(/^น้ำตาลขณะอดอาหาร/)).toHaveValue(null);
-  nextTimes(4);
+  next();
   expect(screen.getByRole("button", { name: "ข้ามการบันทึกครั้งนี้" })).toBeVisible();
   expect(screen.queryByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeInTheDocument();
 });
@@ -216,20 +222,22 @@ test("the same patient session restores the wizard page and draft values while a
   getStoredPatient.mockReturnValue(person);
   saveSession("patient", metadata("same-patient-session"));
   const first = health();
-  await waitFor(() => expect(field(/^ความดันตัวบน/)).toBeVisible());
-  fillPressure(); nextTimes(4); accept();
+  await screen.findByRole("checkbox", { name: "บันทึกความดันโลหิต" }); choose("ความดันโลหิต"); next();
+  fillPressure(); next(); accept();
   first.unmount();
   const second = health();
   expect(await screen.findByRole("button", { name: "บันทึกข้อมูลสุขภาพ" })).toBeInTheDocument();
   expect(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeChecked();
-  backTimes(4);
+  back();
   expect(field(/^ความดันตัวบน/)).toBeVisible();
   expect(field(/^ความดันตัวบน/)).toHaveValue(120);
   second.unmount();
   clearSession("patient", { logout: true });
   saveSession("patient", metadata("different-patient-session"));
   health();
-  await waitFor(() => expect(field(/^ความดันตัวบน/)).toBeVisible());
+  await screen.findByRole("checkbox", { name: "บันทึกความดันโลหิต" });
+  expect(screen.getByRole("checkbox", { name: "บันทึกความดันโลหิต" })).not.toBeChecked();
+  expect(field(/^ความดันตัวบน/)).not.toBeVisible();
   expect(field(/^ความดันตัวบน/)).toHaveValue(null);
   expect(screen.queryByRole("button", { name: "บันทึกข้อมูลสุขภาพ" })).not.toBeInTheDocument();
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -23,6 +23,7 @@ import {
   HealthMeasurementFields,
   healthMeasurementErrors,
   healthRecordPayloads,
+  selectedHealthValues,
   HealthEntrySummary,
   ThaiCvRiskCard,
 } from "./AddHealth";
@@ -32,6 +33,7 @@ import BuddhistDateInput from "../components/BuddhistDateInput";
 import { formatThaiDate, gregorianDate, todayGregorian } from "../utils/thaiDate";
 import FormPages, { FormPage } from "../components/FormPages";
 import HealthResultSummary from "../components/HealthResultSummary";
+import HealthSectionPicker from "../components/HealthSectionPicker";
 import { guestProfileLookupFailure, readGuestProfile } from "../utils/guestProfileLookup";
 import "../styles/patient.css";
 import "../styles/guest-lookup.css";
@@ -71,6 +73,7 @@ function personalFields(value) {
 const GUEST_FORM_STEPS = [
   { id: "personal", title: "ข้อมูลผู้รับบริการ", description: "กรอกข้อมูลของผู้ที่ต้องการบันทึกสุขภาพครั้งนี้" },
   { id: "conditions", title: "พฤติกรรมและโรคประจำตัว", description: "กรอกข้อมูลที่ทราบ เลือกโรคได้มากกว่า 1 ข้อ" },
+  { id: "measurements", title: "เลือกรายการสุขภาพ", description: "เลือกเฉพาะหมวดที่ต้องการบันทึก หรือไม่เลือกเลยก็ได้" },
   ...HEALTH_SECTIONS.map(({ type, title }) => ({ id: type, title, description: "กรอกเฉพาะผลตรวจที่มี หากไม่มีข้อมูลให้กดถัดไป" })),
   { id: "review", title: "ตรวจสอบและส่งข้อมูล", description: "ตรวจสอบข้อมูลและให้ความยินยอมก่อนส่งให้เจ้าหน้าที่" },
 ];
@@ -165,6 +168,7 @@ export default function GuestHealth() {
   const [profile, setProfile] = useState({ ...EMPTY_PROFILE });
   const [otherDiseases, setOtherDiseases] = useState("");
   const [values, setValues] = useState(emptyHealthValues);
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [errors, setErrors] = useState({});
   const [agreements, setAgreements] = useState({});
   const [agreementError, setAgreementError] = useState("");
@@ -288,6 +292,7 @@ export default function GuestHealth() {
     setProfile({ ...EMPTY_PROFILE });
     setOtherDiseases("");
     setValues(emptyHealthValues());
+    setSelectedTypes([]);
     setAgreements({});
     setAgreementError("");
     setErrors({});
@@ -313,7 +318,16 @@ export default function GuestHealth() {
     setErrors((previous) => ({ ...previous, [`${type}-${name}`]: "" }));
     setError("");
   };
-  const records = healthRecordPayloads(values);
+  const formSteps = useMemo(() => GUEST_FORM_STEPS.filter(step => ["personal", "conditions", "measurements", "review"].includes(step.id) || selectedTypes.includes(step.id)), [selectedTypes]);
+  const selectedValues = selectedHealthValues(values, selectedTypes);
+  const records = healthRecordPayloads(selectedValues);
+  const changeSelection = nextTypes => {
+    if (pendingRef.current) return;
+    const next = HEALTH_SECTIONS.filter(({ type }) => nextTypes.includes(type)).map(({ type }) => type);
+    setSelectedTypes(next);
+    setErrors(previous => Object.fromEntries(Object.entries(previous).filter(([field]) => !HEALTH_SECTIONS.some(({ type }) => field.startsWith(`${type}-`) && !next.includes(type)))));
+    setError("");
+  };
   const recordedDiseases = [
     ...profile.chronicDiseases,
     ...otherDiseases.split(",").map((item) => item.trim()).filter(Boolean),
@@ -349,7 +363,7 @@ export default function GuestHealth() {
       !profile.cancerDetails.trim()
     )
       invalid.cancerDetails = "กรุณาระบุชนิดหรือตำแหน่งของมะเร็ง";
-    Object.assign(invalid, healthMeasurementErrors(values));
+    Object.assign(invalid, healthMeasurementErrors(selectedValues));
     setErrors(invalid);
     if (Object.keys(invalid).length) {
       setError("กรุณาตรวจสอบข้อมูลในช่องที่ระบุ");
@@ -381,7 +395,7 @@ export default function GuestHealth() {
     const submitted = {
       maskedCitizenId: `•••••••••${citizenId.slice(-4)}`,
       profile: { ...profileData, chronicDiseases: [...profileData.chronicDiseases] },
-      values: Object.fromEntries(Object.entries(values).map(([type, fields]) => [type, { ...fields }])),
+      values: selectedHealthValues(values, selectedTypes),
       recordCount: records.length,
       clientSubmittedAt: new Date().toISOString(),
     };
@@ -405,6 +419,7 @@ export default function GuestHealth() {
       setProfile({ ...EMPTY_PROFILE });
       setOtherDiseases("");
       setValues(emptyHealthValues());
+      setSelectedTypes([]);
       setAgreements({});
       requestKey.current = { fingerprint: "", id: "" };
     } catch (requestError) {
@@ -471,6 +486,7 @@ export default function GuestHealth() {
     setProfile({ ...EMPTY_PROFILE });
     setOtherDiseases("");
     setValues(emptyHealthValues());
+    setSelectedTypes([]);
     setAgreements({});
     setAgreementError("");
     setErrors({});
@@ -506,7 +522,7 @@ export default function GuestHealth() {
             </div>
             <span className="badge badge-warning">รอตรวจสอบก่อนยืนยัน</span>
           </div>
-          <FormPages ref={pagesRef} steps={GUEST_FORM_STEPS} busy={saving}>
+          <FormPages ref={pagesRef} steps={formSteps} busy={saving}>
           <form
             onSubmit={submit}
             noValidate
@@ -696,7 +712,11 @@ export default function GuestHealth() {
                 </div>
               </section>
               </FormPage>
-                {HEALTH_SECTIONS.map((section, index) => {
+              <FormPage id="measurements">
+                <HealthSectionPicker sections={HEALTH_SECTIONS} selectedTypes={selectedTypes} onChange={changeSelection} disabled={saving}
+                  emptyMessage="หากไม่เลือกหมวดใด สามารถส่งเฉพาะข้อมูลผู้รับบริการได้โดยไม่กรอกผลตรวจสุขภาพ" />
+              </FormPage>
+                {HEALTH_SECTIONS.map((section) => {
                   const Icon = section.icon;
                   return (
                     <FormPage id={section.type} key={section.type}>
@@ -718,10 +738,11 @@ export default function GuestHealth() {
                           <h2>{section.title}</h2>
                         </div>
                         <span className="patient-section-number">
-                          0{index + 1}
+                          {String(formSteps.findIndex(step => step.id === section.type) + 1).padStart(2, "0")}
                         </span>
                       </div>
                       <div className="panel-body">
+                        <Button type="button" variant="secondary" disabled={saving} onClick={() => pagesRef.current?.goTo("measurements")}>เปลี่ยนรายการสุขภาพ</Button>
                         <p className="patient-card-description">
                           {section.description}
                         </p>
@@ -732,6 +753,7 @@ export default function GuestHealth() {
                             updateMeasure(section.type, name, value)
                           }
                           errors={errors}
+                          disabled={!selectedTypes.includes(section.type)}
                           idPrefix="guest"
                         />
                       </div>
@@ -741,6 +763,7 @@ export default function GuestHealth() {
                 })}
             </fieldset>
             <FormPage id="review">
+            <Button type="button" variant="secondary" disabled={saving} onClick={() => pagesRef.current?.goTo("measurements")}>เปลี่ยนรายการสุขภาพ</Button>
             <section className="panel" aria-label="ตรวจสอบข้อมูลผู้รับบริการครั้งนี้">
               <div className="panel-header"><h2>ข้อมูลผู้รับบริการครั้งนี้</h2></div>
               <div className="panel-body"><dl className="form-review-values">
@@ -755,7 +778,7 @@ export default function GuestHealth() {
                 {profile.chronicDiseases.includes("มะเร็ง") && <div><dt>ชนิดหรือตำแหน่งมะเร็ง</dt><dd>{profile.cancerDetails}</dd></div>}
               </dl></div>
             </section>
-            <GuestMeasurementSummary values={values} recordCount={records.length} />
+            <GuestMeasurementSummary values={selectedValues} recordCount={records.length} />
             <Agreements value={agreements} onChange={(next) => { setAgreements(next); setAgreementError(""); }}
               error={agreementError} disabled={saving} idPrefix="guest-agreement" />
             <div className="patient-save-bar">

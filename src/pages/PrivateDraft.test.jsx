@@ -23,8 +23,9 @@ const data = (sessionId = "same-session", person = patient) => ({ patient: perso
 const healthPage = () => <MemoryRouter initialEntries={[`/health/${citizenId}`]}><Routes><Route path="/health/:citizenId" element={<AddHealth />} /></Routes></MemoryRouter>;
 const profilePage = () => <MemoryRouter><Profile /></MemoryRouter>;
 const fill = (label, value) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const choose = (...titles) => titles.forEach(title => fireEvent.click(screen.getByRole("checkbox", { name: `บันทึก${title}` })));
 const accept = () => screen.getAllByRole("checkbox", { name: /ฉันยอมรับ|ฉันยินยอมอย่างชัดแจ้ง/ }).forEach((checkbox) => fireEvent.click(checkbox));
-async function readyHealth() { await waitFor(() => expect(screen.getByLabelText("ความดันตัวบน (SYS)")).not.toBeDisabled()); }
+async function readyHealth() { await screen.findByRole("checkbox", { name: "บันทึกความดันโลหิต" }); }
 function reverify(rendered, sessionId = "same-session") {
   act(() => beginSessionLoad("patient")); rendered.unmount(); act(() => savePatientSession(data(sessionId)));
 }
@@ -35,15 +36,16 @@ beforeEach(() => {
 afterEach(() => { clearSession("patient"); clearSession("admin"); clearPrivateDrafts(); });
 
 test("health measurements survive a same-session visibility recheck while consent choices reset", async () => {
-  const first = render(healthPage()); await readyHealth(); fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); accept();
+  const first = render(healthPage()); await readyHealth(); choose("ความดันโลหิต"); fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); accept();
   reverify(first); render(healthPage()); await readyHealth();
   expect(screen.getByLabelText("ความดันตัวบน (SYS)")).toHaveValue(123); expect(screen.getByLabelText("ความดันตัวล่าง (DIA)")).toHaveValue(81);
-  screen.getAllByRole("checkbox").forEach((checkbox) => expect(checkbox).not.toBeChecked());
+  expect(screen.getByRole("checkbox", { name: "บันทึกความดันโลหิต" })).toBeChecked();
+  screen.getAllByRole("checkbox", { name: /ฉันยอมรับ|ฉันยินยอมอย่างชัดแจ้ง/ }).forEach((checkbox) => expect(checkbox).not.toBeChecked());
 });
 test("a changed session or logout never restores the previous health draft", async () => {
-  const first = render(healthPage()); await readyHealth(); fill("ความดันตัวบน (SYS)", "123");
+  const first = render(healthPage()); await readyHealth(); choose("ความดันโลหิต"); fill("ความดันตัวบน (SYS)", "123");
   reverify(first, "new-session"); const second = render(healthPage()); await readyHealth(); expect(screen.getByLabelText("ความดันตัวบน (SYS)")).toHaveValue(null);
-  fill("ความดันตัวบน (SYS)", "130"); second.unmount(); act(() => clearSession("patient", { logout: true }));
+  choose("ความดันโลหิต"); fill("ความดันตัวบน (SYS)", "130"); second.unmount(); act(() => clearSession("patient", { logout: true }));
   act(() => savePatientSession(data("new-session"))); render(healthPage()); await readyHealth(); expect(screen.getByLabelText("ความดันตัวบน (SYS)")).toHaveValue(null);
 });
 test("partially saved health sections stay locked after recheck and only failed sections are retried", async () => {
@@ -51,7 +53,7 @@ test("partially saved health sections stay locked after recheck and only failed 
     if (payload.type === "sugar") throw { response: { status: 400 } };
     return { data: { data: { recordId: "saved-bp" } } };
   });
-  const first = render(healthPage()); await readyHealth(); fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); fill("น้ำตาลขณะอดอาหาร (FBS)", "95"); accept();
+  const first = render(healthPage()); await readyHealth(); choose("ความดันโลหิต", "น้ำตาลในเลือด"); fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); fill("น้ำตาลขณะอดอาหาร (FBS)", "95"); accept();
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" })); await screen.findByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" });
   reverify(first); render(healthPage()); await screen.findByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" });
   expect(screen.getByLabelText("ความดันตัวบน (SYS)")).toBeDisabled(); expect(screen.getByLabelText("น้ำตาลขณะอดอาหาร (FBS)")).not.toBeDisabled();
@@ -61,7 +63,7 @@ test("partially saved health sections stay locked after recheck and only failed 
 });
 test("an interrupted pending health write is shown as uncertain and never resent automatically", async () => {
   addHealth.mockImplementation(() => new Promise(() => {}));
-  const first = render(healthPage()); await readyHealth(); fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); accept();
+  const first = render(healthPage()); await readyHealth(); choose("ความดันโลหิต"); fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); accept();
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" })); await waitFor(() => expect(addHealth).toHaveBeenCalledTimes(1));
   reverify(first); render(healthPage()); await readyHealth();
   expect((await screen.findAllByText(/การส่งข้อมูลก่อนหน้าถูกขัดจังหวะ/)).length).toBeGreaterThan(0); expect(screen.getByRole("link", { name: /ตรวจสอบประวัติสุขภาพ/ })).toBeInTheDocument();
@@ -70,7 +72,7 @@ test("an interrupted pending health write is shown as uncertain and never resent
 
 test("a readiness failure keeps health values retryable without suggesting an unsent record exists", async () => {
   addHealth.mockRejectedValue(apiNotReady());
-  render(healthPage()); await readyHealth();
+  render(healthPage()); await readyHealth(); choose("ความดันโลหิต");
   fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); accept();
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
   await screen.findByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" });

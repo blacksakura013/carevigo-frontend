@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Activity,
@@ -39,6 +39,7 @@ import { usePrivateDraft } from "../utils/privateDraft";
 import { formatThaiDate } from "../utils/thaiDate";
 import FormPages, { FormPage } from "../components/FormPages";
 import HealthResultSummary from "../components/HealthResultSummary";
+import HealthSectionPicker from "../components/HealthSectionPicker";
 import { getCvRiskPresentation } from "../utils/cvRisk";
 import "../styles/risk-colors.css";
 
@@ -147,6 +148,7 @@ export const HEALTH_SECTIONS = [
 ];
 const SECTIONS = HEALTH_SECTIONS;
 const HEALTH_FORM_STEPS = [
+  { id: "measurements", title: "เลือกรายการสุขภาพ", description: "เลือกเฉพาะหมวดที่ต้องการบันทึก หรือไม่เลือกเลยก็ได้" },
   ...SECTIONS.map(({ type, title }) => ({ id: type, title, description: "กรอกเฉพาะผลตรวจที่มี หากไม่มีข้อมูลให้กดถัดไป" })),
   { id: "review", title: "ตรวจสอบและบันทึก", description: "ตรวจสอบค่าที่กรอกและยืนยันก่อนบันทึก" },
 ];
@@ -158,8 +160,22 @@ export const emptyHealthValues = () =>
     ]),
   );
 const emptyValues = emptyHealthValues;
+export function selectedHealthValues(values, types) {
+  const filtered = emptyHealthValues();
+  for (const { type } of SECTIONS)
+    if (types.includes(type)) filtered[type] = { ...filtered[type], ...values[type] };
+  return filtered;
+}
 const hasValues = (section) =>
   Object.values(section).some((value) => value !== "");
+
+function restoredHealthTypes(draft) {
+  const requested = Array.isArray(draft?.selectedTypes) ? draft.selectedTypes : SECTIONS
+    .filter(({ type }) => hasValues(draft?.values?.[type] || {}) || draft?.outcomes?.[type])
+    .map(({ type }) => type);
+  return SECTIONS.filter(({ type }) => requested.includes(type) || draft?.outcomes?.[type]?.status === "success")
+    .map(({ type }) => type);
+}
 const requiredFor = (type) =>
   type === "blood_pressure"
     ? ["systolic", "diastolic"]
@@ -411,13 +427,14 @@ export default function AddHealth() {
   const [profilePending, setProfilePending] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [values, setValues] = useState(emptyValues);
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [errors, setErrors] = useState({});
   const [agreements, setAgreements] = useState({});
   const [agreementError, setAgreementError] = useState("");
   const [outcomes, setOutcomes] = useState({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
-  const [formStep, setFormStep] = useState(SECTIONS[0].type);
+  const [formStep, setFormStep] = useState("measurements");
   const [assessment, setAssessment] = useState(null);
   const [profileAttempt, setProfileAttempt] = useState(0);
   const outcomeRef = useRef(null);
@@ -434,7 +451,9 @@ export default function AddHealth() {
     setSaving(false);
     const draft = readDraft();
     setValues(draft?.values || emptyValues());
-    setFormStep(draft?.step || SECTIONS[0].type);
+    const restoredTypes = restoredHealthTypes(draft);
+    setSelectedTypes(restoredTypes);
+    setFormStep(["measurements", "review", ...restoredTypes].includes(draft?.step) ? draft.step : "measurements");
     setDraftContext(draftKey);
     setAgreements({});
     setAgreementError("");
@@ -474,10 +493,20 @@ export default function AddHealth() {
   }, [citizenId, validId, profileAttempt, patientMode, readDraft, draftKey]);
   useEffect(() => {
     if (draftContext !== draftKey || !validId) return;
-    if (Object.values(values).some(hasValues) || Object.keys(outcomes).length || formStep !== SECTIONS[0].type)
-      writeDraft({ values, outcomes: draftOutcomes(outcomes), step: formStep });
+    if (selectedTypes.length || Object.values(values).some(hasValues) || Object.keys(outcomes).length || formStep !== "measurements")
+      writeDraft({ values, selectedTypes, outcomes: draftOutcomes(outcomes), step: formStep });
     else clearDraft();
-  }, [values, outcomes, formStep, draftContext, draftKey, validId, writeDraft, clearDraft]);
+  }, [values, selectedTypes, outcomes, formStep, draftContext, draftKey, validId, writeDraft, clearDraft]);
+
+  const formSteps = useMemo(() => HEALTH_FORM_STEPS.filter(step => ["measurements", "review"].includes(step.id) || selectedTypes.includes(step.id)), [selectedTypes]);
+  const selectedValues = selectedHealthValues(values, selectedTypes);
+  const changeSelection = nextTypes => {
+    if (savingRef.current) return;
+    const next = SECTIONS.filter(({ type }) => nextTypes.includes(type) || outcomes[type]?.status === "success").map(({ type }) => type);
+    setSelectedTypes(next);
+    setErrors({});
+    setFormError("");
+  };
 
   const update = (type, name, value) => {
     setValues((previous) => ({
@@ -493,13 +522,9 @@ export default function AddHealth() {
       return next;
     });
   };
-  const selected = SECTIONS.filter(({ type }) => hasValues(values[type]));
-  const successes = Object.values(outcomes).filter(
-    ({ status }) => status === "success",
-  ).length;
-  const failures = Object.values(outcomes).filter(
-    ({ status }) => status === "error",
-  ).length;
+  const selected = SECTIONS.filter(({ type }) => hasValues(selectedValues[type]));
+  const successes = selected.filter(({ type }) => outcomes[type]?.status === "success").length;
+  const failures = selected.filter(({ type }) => outcomes[type]?.status === "error").length;
   const allSaved = successes > 0 && successes === selected.length;
 
   const handleSubmit = async (event) => {
@@ -628,15 +653,16 @@ export default function AddHealth() {
   const newEntry = () => {
     clearDraft();
     setValues(emptyValues());
+    setSelectedTypes([]);
     setAgreements({});
     setAgreementError("");
     setOutcomes({});
     setErrors({});
     setFormError("");
-    setFormStep(SECTIONS[0].type);
+    setFormStep("measurements");
     pagesRef.current?.reset();
     setTimeout(
-      () => pagesRef.current?.focusField("health-blood_pressure-systolic"),
+      () => pagesRef.current?.goTo("measurements"),
       0,
     );
   };
@@ -757,7 +783,7 @@ export default function AddHealth() {
                   : `บันทึกแล้ว ${successes} ส่วน${failures ? ` · ยังไม่สำเร็จ ${failures} ส่วน` : ""}`} {" "}
                 ส่วนที่บันทึกแล้วจะไม่ถูกส่งซ้ำ
               </Notice>
-              {!profilePending && profile && <HealthResultSummary records={healthRecordPayloads(values).filter(record => outcomes[record.type]?.status === "success")} context="saved" birthDate={profile.birthDate} gender={profile.gender} />}
+              {!profilePending && profile && <HealthResultSummary records={healthRecordPayloads(selectedValues).filter(record => outcomes[record.type]?.status === "success")} context="saved" birthDate={profile.birthDate} gender={profile.gender} />}
             </div>
           )}
           {!profilePending && profile && (
@@ -781,7 +807,7 @@ export default function AddHealth() {
               </Notice>
             </div>
           )}
-          {!profilePending && !profileError && profile && <FormPages ref={pagesRef} key={citizenId} steps={HEALTH_FORM_STEPS} busy={saving} initialStep={formStep} onStepChange={setFormStep}>
+          {!profilePending && !profileError && profile && <FormPages ref={pagesRef} key={citizenId} steps={formSteps} busy={saving} initialStep={formStep} onStepChange={setFormStep}>
           <form onSubmit={handleSubmit} noValidate aria-busy={saving}>
             <div className="patient-health-intro">
               <div>
@@ -793,6 +819,11 @@ export default function AddHealth() {
               </span>
             </div>
             {formError && <Notice tone="error">{formError}</Notice>}
+            <FormPage id="measurements">
+              <HealthSectionPicker sections={SECTIONS} selectedTypes={selectedTypes} onChange={changeSelection} disabled={saving}
+                lockedTypes={SECTIONS.filter(({ type }) => outcomes[type]?.status === "success").map(({ type }) => type)}
+                emptyMessage="หากไม่เลือกหมวดใด สามารถข้ามครั้งนี้ได้โดยไม่มีการเพิ่มบันทึกสุขภาพ" />
+            </FormPage>
               {SECTIONS.map(
                 (
                   {
@@ -804,11 +835,11 @@ export default function AddHealth() {
                     description,
                     fields,
                   },
-                  index,
                 ) => {
                   const outcome = outcomes[type];
                   const locked =
                     saving ||
+                    !selectedTypes.includes(type) ||
                     outcome?.status === "success" ||
                     !profile ||
                     profilePending ||
@@ -831,10 +862,11 @@ export default function AddHealth() {
                           <h2>{title}</h2>
                         </div>
                         <span className="patient-section-number">
-                          0{index + 1}
+                          {String(formSteps.findIndex(step => step.id === type) + 1).padStart(2, "0")}
                         </span>
                       </div>
                       <div className="panel-body">
+                        <Button type="button" variant="secondary" disabled={saving} onClick={() => pagesRef.current?.goTo("measurements")}>เปลี่ยนรายการสุขภาพ</Button>
                         <p className="patient-card-description">
                           {description}
                         </p>
@@ -878,7 +910,8 @@ export default function AddHealth() {
                 },
               )}
             <FormPage id="review">
-            <HealthEntrySummary values={values} outcomes={outcomes} />
+            <Button type="button" variant="secondary" disabled={saving} onClick={() => pagesRef.current?.goTo("measurements")}>เปลี่ยนรายการสุขภาพ</Button>
+            <HealthEntrySummary values={selectedValues} outcomes={outcomes} />
             {selected.length > 0 && <Agreements actor={patientMode ? "subject" : "staff"} value={agreements}
               onChange={(next) => { setAgreements(next); setAgreementError(""); }}
               error={agreementError} disabled={saving || allSaved} idPrefix="health-agreement" />}

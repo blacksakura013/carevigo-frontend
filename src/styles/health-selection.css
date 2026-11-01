@@ -1,0 +1,30 @@
+:root body .health-section-picker { display: grid; gap: 12px; min-width: 0; max-width: 100%; }
+:root body .health-section-picker h2 { margin: 0; color: #183c2d; font-size: 1.5rem; line-height: 1.6; }
+:root body .health-section-picker fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+:root body .health-section-picker legend { max-width: 100%; padding: 0; color: #3a5348; font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+:root body .health-selection-count { margin: 10px 0 16px; color: #225b43; font-size: 1.125rem; font-weight: 700; line-height: 1.8; }
+:root body .health-selection-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+:root body .health-selection-card { display: grid; grid-template-columns: 28px 42px minmax(0, 1fr); align-items: start; gap: 10px 12px; padding: 20px; min-width: 0; min-height: 132px; border: 2px solid #718b7c; border-radius: 14px; background: #fff; color: #294736; cursor: pointer; }
+:root body .health-selection-card.is-selected { border-color: #14623d; background: #eaf8ef; box-shadow: inset 0 0 0 1px #14623d; }
+:root body .health-selection-card:focus-within { outline: 3px solid #08766c; outline-offset: 4px; }
+:root body .health-selection-card input[type="checkbox"] { width: 26px; height: 26px; min-width: 26px; margin: 5px 0 0; accent-color: #14623d; cursor: pointer; }
+:root body .health-selection-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 10px; background: #edf4f0; color: #225b43; }
+:root body .health-selection-blood_pressure .health-selection-icon { color: #a73946; background: #fff0f2; }
+:root body .health-selection-sugar .health-selection-icon { color: #205da5; background: #edf4ff; }
+:root body .health-selection-cholesterol .health-selection-icon { color: #795700; background: #fff5d6; }
+:root body .health-selection-copy { display: grid; gap: 7px; min-width: 0; }
+:root body .health-selection-copy strong { color: #183c2d; font-size: 1.25rem; line-height: 1.7; }
+:root body .health-selection-copy > span { color: #3a5348; font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+:root body .health-selection-status { grid-column: 3; display: inline-flex; align-items: center; gap: 7px; justify-self: start; max-width: 100%; padding: 4px 9px; border-radius: 7px; color: #42594f; background: #f0f4f2; font-size: 1.125rem; line-height: 1.7; }
+:root body .health-selection-status svg { flex-shrink: 0; }
+:root body .health-selection-card.is-selected .health-selection-status { color: #fff; background: #14623d; font-weight: 700; }
+:root body .health-selection-card.is-locked { cursor: default; }
+:root body .health-selection-card.is-disabled { cursor: wait; background: #f0f4f2; }
+:root body .health-selection-card.is-locked input, :root body .health-selection-card.is-disabled input { cursor: default; }
+:root body .health-selection-empty { margin: 16px 0 0; padding: 14px 16px; border: 1px solid #a5b7ac; border-radius: 10px; background: #f4f8f5; color: #354e41; font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+@media (max-width: 680px) {
+  :root body .health-selection-grid { grid-template-columns: minmax(0, 1fr); }
+  :root body .health-selection-card { grid-template-columns: 28px minmax(0, 1fr); padding: 16px; gap: 10px; }
+  :root body .health-selection-icon { display: none; }
+  :root body .health-selection-status { grid-column: 2; flex-wrap: wrap; }
+}

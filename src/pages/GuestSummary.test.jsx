@@ -13,6 +13,7 @@ const field = label => screen.getByLabelText(label);
 const fill = (label, value) => fireEvent.change(field(label), { target: { value } });
 const next = () => fireEvent.click(screen.getByRole("button", { name: "ถัดไป" }));
 const nextTimes = count => { for (let step = 0; step < count; step += 1) next(); };
+const choose = (...titles) => titles.forEach(title => fireEvent.click(screen.getByRole("checkbox", { name: `บันทึก${title}` })));
 const personal = () => { fill(/^เลขบัตรประชาชน/, citizenId); fill(/^ชื่อ/, "สมใจ"); fill(/^นามสกุล/, "ดูแลสุขภาพ"); };
 const pressure = () => { fill(/^ความดันตัวบน/, "128"); fill(/^ความดันตัวล่าง/, "79"); };
 const consent = () => {
@@ -21,13 +22,13 @@ const consent = () => {
 };
 const send = () => fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
 const summary = () => screen.getByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" });
-const readyPressure = () => { personal(); nextTimes(2); pressure(); nextTimes(4); consent(); };
+const readyPressure = () => { personal(); nextTimes(2); choose("ความดันโลหิต"); next(); pressure(); next(); consent(); };
 const riskCard = () => within(summary()).getByRole("region", { name: "ความเสี่ยงโรคหัวใจและหลอดเลือด" });
 const readyAssessment = () => {
   personal(); fill(/^วันเกิด/, "15/03/2523"); fill("เพศสำหรับการประเมินความเสี่ยง", "female"); next();
   fill("สถานะการสูบบุหรี่", "never");
   fireEvent.click(screen.getByRole("checkbox", { name: /ยืนยันว่าตรวจสอบข้อมูลโรคประจำตัวแล้ว/ }));
-  next(); pressure(); nextTimes(2); fill(/^ไขมันรวม/, "180"); nextTimes(2); consent();
+  next(); choose("ความดันโลหิต", "ไขมันในเลือด"); next(); pressure(); next(); fill(/^ไขมันรวม/, "180"); next(); consent();
 };
 function noReadsOrStorage() {
   for (const method of [getGuestReceipt, getHealthByType, getPatientProfile, searchUser]) expect(method).not.toHaveBeenCalled();
@@ -51,10 +52,10 @@ test("an accepted guest entry shows only its submitted profile and all measureme
   next(); fill("สถานะการสูบบุหรี่", "former"); fill(/^เลิกสูบบุหรี่มาแล้ว/, "18");
   fireEvent.click(screen.getByRole("checkbox", { name: "มะเร็ง" })); fill(/^ชนิดหรือตำแหน่งของมะเร็ง/, "เต้านม");
   fireEvent.click(screen.getByRole("checkbox", { name: /ยืนยันว่าตรวจสอบข้อมูลโรคประจำตัวแล้ว/ }));
-  next(); pressure(); fill(/^ชีพจร/, "72");
+  next(); choose("ความดันโลหิต", "น้ำตาลในเลือด", "ไขมันในเลือด", "น้ำหนักและส่วนสูง"); next(); pressure(); fill(/^ชีพจร/, "72");
   next(); fill(/^น้ำตาลขณะอดอาหาร/, "95"); fill(/^น้ำตาลสะสม/, "5.6");
   next(); fill(/^ไขมันรวม/, "180"); fill("LDL cholesterol", "100"); fill("HDL cholesterol", "50"); fill(/^ไตรกลีเซอไรด์/, "120");
-  next(); fill(/^น้ำหนัก/, "60.5"); fill(/^ส่วนสูง/, "165"); next(); consent(); send();
+  next(); fill(/^น้ำหนัก(?:\s*\*)?$/, "60.5"); fill(/^ส่วนสูง/, "165"); next(); consent(); send();
   await screen.findByRole("heading", { name: "ส่งข้อมูลเรียบร้อยแล้ว 4 รายการ" });
   const result = within(summary());
   for (const value of ["สมใจ ดูแลสุขภาพ", "•••••••••0701", "หญิง", "0812345678", "เลิกสูบบุหรี่แล้ว 18 เดือน", "เต้านม", "128 mmHg", "79 mmHg", "72 ครั้ง/นาที", "95 mg/dL", "5.6 %", "180 mg/dL", "100 mg/dL", "50 mg/dL", "120 mg/dL", "60.5 กก.", "165 ซม."])
@@ -101,7 +102,7 @@ test("starting a new guest entry clears the accepted summary, personal fields, m
   expect(screen.queryByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" })).not.toBeInTheDocument();
   await waitFor(() => expect(field(/^เลขบัตรประชาชน/)).toHaveFocus());
   expect(field(/^เลขบัตรประชาชน/)).toBeVisible();
-  expect(screen.getByText("ขั้นตอนที่ 1 จาก 7")).toBeVisible();
+  expect(screen.getByText("ขั้นตอนที่ 1 จาก 4")).toBeVisible();
   expect(screen.getByRole("heading", { level: 1, name: "บันทึกสุขภาพ ไม่ต้องเข้าสู่ระบบ" })).toBeVisible();
   expect(document.title).toBe("บันทึกสุขภาพโดยไม่เข้าสู่ระบบ | Save Stroke");
   expect(field(/^ชื่อ/)).toHaveValue(""); expect(field(/^นามสกุล/)).toHaveValue(""); expect(field(/^เลขบัตรประชาชน/)).toHaveValue("");
@@ -164,7 +165,7 @@ test.each([
     submissionId: "accepted-profile", recordIds: [], profileOnly: true,
     thaiCvRisk: { status, score: null, reason, missing, inputs: { profileSource: "submitted-profile" } },
   } } });
-  mount(); personal(); nextTimes(6); consent(); send();
+  mount(); personal(); nextTimes(3); consent(); send();
   await screen.findByRole("heading", { name: "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว" });
   expect(riskCard()).toHaveClass("patient-cv-risk-unknown");
   expect(riskCard()).toHaveTextContent(reason);
@@ -251,7 +252,7 @@ test("the one-time summary is discarded on unmount and no receipt or historical 
 test("profile-only guest submission sends no health rows and explicitly summarizes zero optional measurements", async () => {
   submitGuestHealth.mockResolvedValue({ status: 202, data: { data: { submissionId: "profile-only", recordIds: [], profileOnly: true,
     submittedAt: "2026-11-01T03:45:00.000Z", reviewDueAt: "2026-11-01T16:59:00.000Z" } } });
-  mount(); personal(); nextTimes(6);
+  mount(); personal(); nextTimes(3);
   expect(screen.getByText(/สามารถส่งข้อมูลผู้รับบริการได้โดยไม่กรอกผลตรวจ/)).toBeVisible();
   send();
   expect(submitGuestHealth).not.toHaveBeenCalled();
