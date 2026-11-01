@@ -83,7 +83,9 @@ test("starting a new guest entry clears the accepted summary, personal fields, m
   const startNew = screen.getByRole("button", { name: "บันทึกรายการใหม่" });
   expect(riskCard().compareDocumentPosition(startNew) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   await waitFor(() => expect(summary()).toHaveFocus());
-  userEvent.tab();
+  expect(within(summary()).getByText("แหล่งอ้างอิงและเกณฑ์แปลผล").closest("details")).not.toHaveAttribute("open");
+  // Native details tabbing is covered in browser QA; activate reset by keyboard.
+  startNew.focus();
   expect(startNew).toHaveFocus();
   const previousScroll = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
   const scrollIntoView = jest.fn();

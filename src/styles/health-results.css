@@ -1,0 +1,43 @@
+/* Current-entry results use text and icons as well as semantic colors. */
+:root body .health-results { display: grid; gap: 20px; min-width: 0; max-width: 100%; scroll-margin-top: 16px; }
+:root body .health-results :is(h2, h3, h4, p, ul, dl) { margin: 0; }
+:root body .health-results :is(p, li, dt, summary, a) { font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+:root body .health-results h2 { font-size: 1.5rem; line-height: 1.65; color: #182e2c; }
+:root body .health-results h3 { font-size: 1.3rem; line-height: 1.7; color: #182e2c; }
+:root body .health-results h4 { font-size: 1.125rem; line-height: 1.8; color: #182e2c; }
+:root body .health-results-heading { display: grid; gap: 8px; }
+:root body .health-results-heading p { color: #42574f; }
+:root body .health-results-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+:root body .health-result-card { --result-accent: #465c6d; --result-tint: #f2f5f8; display: grid; align-content: start; gap: 16px; min-width: 0; padding: 22px; border: 2px solid var(--result-accent); border-top-width: 7px; border-radius: 16px; background: var(--result-tint); color: #243d34; }
+:root body .health-result-normal { --result-accent: #14623d; --result-tint: #eaf8ef; }
+:root body .health-result-watch { --result-accent: #735000; --result-tint: #fff5cc; }
+:root body .health-result-high, :root body .health-result-urgent { --result-accent: #a5232a; --result-tint: #fff0f0; }
+:root body .health-result-card-heading { display: grid; justify-items: start; gap: 12px; min-width: 0; }
+:root body .health-result-level { display: inline-flex; align-items: flex-start; gap: 8px; max-width: 100%; padding: 7px 12px; border-radius: 10px; background: var(--result-accent); color: #fff; font-size: 1.125rem; font-weight: 700; line-height: 1.7; overflow-wrap: anywhere; }
+:root body .health-result-level svg { flex: 0 0 22px; margin-top: 4px; }
+:root body .health-result-measurements { display: grid; gap: 12px; }
+:root body .health-result-measurements > div { display: grid; gap: 2px; min-width: 0; }
+:root body .health-result-measurements dt { color: #3d534a; }
+:root body .health-result-measurements dd { margin: 0; color: var(--result-accent); font-size: 1.5rem; font-weight: 800; line-height: 1.6; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+:root body .health-result-reference { padding-top: 12px; border-top: 1px solid #bacac3; color: #3d534a; }
+:root body .health-result-actions { display: grid; gap: 7px; }
+:root body .health-results ul { padding-left: 1.4em; }
+:root body .health-results li + li { margin-top: 6px; }
+:root body .health-results-priority { display: flex; align-items: flex-start; gap: 12px; padding: 20px; border: 3px solid #a5232a; border-radius: 16px; background: #fff0f0; color: #842029; }
+:root body .health-results-priority > svg { flex: 0 0 28px; margin-top: 6px; }
+:root body .health-results-priority > div { display: grid; gap: 10px; min-width: 0; }
+:root body .health-results-priority h3 { color: #842029; }
+:root body .health-results-empty { display: flex; align-items: flex-start; gap: 12px; padding: 20px; border: 1px solid #a5b5ae; border-radius: 14px; background: #f4f7f5; color: #3d534a; }
+:root body .health-results-empty > svg { flex-shrink: 0; margin-top: 5px; }
+:root body .health-results-note, :root body .health-results-emergency-advice { color: #42574f; }
+:root body .health-results-sources { padding: 16px 20px; border: 1px solid #a5b5ae; border-radius: 14px; background: #fff; }
+:root body .health-results-sources summary { cursor: pointer; min-height: 44px; font-weight: 700; color: #245a49; }
+:root body .health-results-sources summary:focus-visible { outline: 3px solid #08766c; outline-offset: 4px; border-radius: 4px; }
+:root body .health-results-sources ul { margin-top: 12px; }
+:root body .health-results-sources a { color: #0c6254; text-decoration: underline; text-underline-offset: 3px; }
+:root body .health-saved-summary { display: grid; gap: 20px; scroll-margin-top: 16px; }
+@media (max-width: 720px) {
+  :root body .health-results-grid { grid-template-columns: minmax(0, 1fr); }
+  :root body .health-result-card { padding: 18px; }
+  :root body .health-results-priority { gap: 10px; padding: 16px; }
+}

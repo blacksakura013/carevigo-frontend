@@ -261,7 +261,7 @@ test("retries only failed health sections and omits blank optional measures", as
   acceptAgreements(true);
   fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
   await screen.findAllByText(/บันทึกถี่เกินกำหนด/);
-  expect(screen.getByLabelText("น้ำตาลขณะอดอาหาร (FBS)")).toBeDisabled();
+  expect(screen.getByRole("spinbutton", { name: "น้ำตาลขณะอดอาหาร (FBS)" })).toBeDisabled();
   expect(screen.getByLabelText("ไขมันรวม (Total cholesterol)")).toHaveValue(
     180,
   );

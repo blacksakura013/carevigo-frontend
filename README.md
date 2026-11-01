@@ -255,3 +255,32 @@ Layout checks cover 16 public/patient/staff views at 360, 768 and 1440px. Wide
 admin tables remain inside keyboard-focusable scrolling regions, with a visible
 hint on smaller screens. Search icon padding, mobile history captions, filters,
 statistics, CV summaries and footer wrapping use the larger readable text sizes.
+
+## Current-entry health interpretation
+
+After an accepted guest submission, the results page shows only that entry's
+measurements, readable interpretation, and specific next steps before the separate
+ten-year Thai CV risk card. Signed-in entry shows only categories that actually
+saved; failed or uncertain categories appear only after a successful retry.
+Profile-only guest submissions remain neutral. No historical measurements are
+looked up or inserted into the result and no diagnosis is persisted.
+
+The pure `interpretHealthRecords` utility uses the
+[2024 Thai BP classification summarized by DDC](https://ddc.moph.go.th/uploads/publish/1643320241125083206.pdf),
+[DDC Thai BMI bands](https://ddc.moph.go.th/uploads/publish/1648820241210053223.pdf),
+[NIDDK glucose screening](https://www.niddk.nih.gov/health-information/diabetes/overview/tests-diagnosis),
+and linked CDC, AHA, NIH lipid and age guidance. References are expandable on the
+result itself. Labels are screening guidance rather than diagnoses or personal
+treatment targets. Unknown age is explicit; known children do not receive adult
+normal classifications, and BMI/lipid adult bands require age20+. Severe acute
+glucose/BP and severe triglyceride safety guidance remain visible at younger ages.
+
+BP at least180 systolic **or**110 diastolic, FBS below70 or at least300mg/dL
+appears before routine results with actions that do not wait for administrative
+review. The first FBS>=300 same-day contact flag is a conservative application
+choice: [CDC's emergency guidance](https://www.cdc.gov/diabetes/about/diabetic-ketoacidosis.html)
+specifies persistent glucose>=300 or relevant danger symptoms; that distinction
+is stated in the card. Low-glucose oral carbohydrate advice is conditional on safe
+swallowing, with child-specific guidance instead of a fixed adult15g amount.
+No result recommends changing medication without a clinician. The separate CV
+risk percentage never overrides acute warning signs or derives from BMI labels.

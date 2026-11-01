@@ -38,6 +38,7 @@ import { agreementPayload, agreementsComplete } from "../utils/legal";
 import { usePrivateDraft } from "../utils/privateDraft";
 import { formatThaiDate } from "../utils/thaiDate";
 import FormPages, { FormPage } from "../components/FormPages";
+import HealthResultSummary from "../components/HealthResultSummary";
 import { getCvRiskPresentation } from "../utils/cvRisk";
 import "../styles/risk-colors.css";
 
@@ -748,6 +749,17 @@ export default function AddHealth() {
               </Link>
             </Notice>
           )}
+          {successes > 0 && (
+            <div ref={outcomeRef} tabIndex={-1} className="health-saved-summary">
+              <Notice tone={failures ? "warning" : "success"}>
+                {allSaved
+                  ? `บันทึกข้อมูลเรียบร้อยแล้ว ${successes} ส่วน`
+                  : `บันทึกแล้ว ${successes} ส่วน${failures ? ` · ยังไม่สำเร็จ ${failures} ส่วน` : ""}`} {" "}
+                ส่วนที่บันทึกแล้วจะไม่ถูกส่งซ้ำ
+              </Notice>
+              {!profilePending && profile && <HealthResultSummary records={healthRecordPayloads(values).filter(record => outcomes[record.type]?.status === "success")} context="saved" birthDate={profile.birthDate} gender={profile.gender} />}
+            </div>
+          )}
           {!profilePending && profile && (
             <>
               <ThaiCvRiskCard risk={assessment} />
@@ -760,16 +772,6 @@ export default function AddHealth() {
                 </p>
               )}
             </>
-          )}
-          {successes > 0 && (
-            <div ref={outcomeRef} tabIndex={-1}>
-              <Notice tone={failures ? "warning" : "success"}>
-                {allSaved
-                  ? `บันทึกข้อมูลเรียบร้อยแล้ว ${successes} ส่วน`
-                  : `บันทึกแล้ว ${successes} ส่วน${failures ? ` · ยังไม่สำเร็จ ${failures} ส่วน` : ""}`}{" "}
-                ส่วนที่บันทึกแล้วจะไม่ถูกส่งซ้ำ
-              </Notice>
-            </div>
           )}
           {!successes && failures > 0 && (
             <div ref={outcomeRef} tabIndex={-1}>

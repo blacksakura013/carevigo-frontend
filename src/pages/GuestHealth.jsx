@@ -31,6 +31,7 @@ import { agreementPayload, agreementsComplete } from "../utils/legal";
 import BuddhistDateInput from "../components/BuddhistDateInput";
 import { formatThaiDate, gregorianDate, todayGregorian } from "../utils/thaiDate";
 import FormPages, { FormPage } from "../components/FormPages";
+import HealthResultSummary from "../components/HealthResultSummary";
 import "../styles/patient.css";
 
 const CONDITIONS = [
@@ -116,6 +117,7 @@ function GuestSubmittedSummary({ summary, resultRef, onStartNew }) {
       <h2>{summary.recordCount ? `ส่งข้อมูลเรียบร้อยแล้ว ${summary.recordCount} รายการ` : "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว"}</h2>
       <p>ระบบรับข้อมูลแล้ว สรุปด้านล่างเป็นข้อมูลที่คุณส่งในครั้งนี้</p>
     </section>
+    <HealthResultSummary records={healthRecordPayloads(summary.values)} context="pending-review" birthDate={person.birthDate} gender={person.gender} asOf={summary.submittedAt || summary.clientSubmittedAt} />
     <div className="guest-submitted-assessment">
       <p className="patient-server-assessment">ประเมินจากข้อมูลครั้งนี้ · รอเจ้าหน้าที่ตรวจสอบ</p>
       <ThaiCvRiskCard risk={summary.assessment} />
@@ -152,7 +154,6 @@ function GuestSubmittedSummary({ summary, resultRef, onStartNew }) {
         {person.chronicDiseases.includes("มะเร็ง") && <div><dt>ชนิดหรือตำแหน่งมะเร็ง</dt><dd>{person.cancerDetails}</dd></div>}
       </dl></div>
     </section>
-    <GuestMeasurementSummary values={summary.values} recordCount={summary.recordCount} submitted />
   </section>;
 }
 export default function GuestHealth() {
