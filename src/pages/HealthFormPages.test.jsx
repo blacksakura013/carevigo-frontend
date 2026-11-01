@@ -157,7 +157,7 @@ test("a guest can submit profile and consent with every optional measurement pag
   guest(); fillPersonal(); nextTimes(6); accept();
   fireEvent.click(screen.getByRole("button", { name: /ส่งข้อมูลเพื่อรอตรวจสอบ/ }));
   await screen.findByRole("heading", { name: "ส่งข้อมูลผู้รับบริการเรียบร้อยแล้ว" });
-  expect(submitGuestHealth).toHaveBeenCalledWith(expect.objectContaining({ records: [] }));
+  expect(submitGuestHealth).toHaveBeenCalledWith(expect.objectContaining({ records: [] }), expect.objectContaining({ isCurrent: expect.any(Function) }));
   expect(screen.getByText("ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ")).toBeVisible();
 });
 

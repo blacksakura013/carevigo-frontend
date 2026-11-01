@@ -51,7 +51,7 @@ export default function AdminResetPassword() {
     let current = true;
     const request = epoch.current;
     setStatus("checking"); setError("");
-    validateAdminPasswordReset(token.current).then(response => {
+    validateAdminPasswordReset(token.current, { isCurrent: () => current && active.current && epoch.current === request }).then(response => {
       if (!current || !active.current || epoch.current !== request) return;
       if (response.data?.data?.valid === true) setStatus("ready");
       else { token.current = ""; setStatus("invalid"); }
@@ -77,7 +77,7 @@ export default function AdminResetPassword() {
     const request = ++epoch.current;
     setSaving(true); setError("");
     try {
-      await resetAdminPassword(token.current, password, confirm);
+      await resetAdminPassword(token.current, password, confirm, { isCurrent: () => active.current && epoch.current === request });
       if (!active.current || epoch.current !== request) return;
       completed.current = true; token.current = "";
       setPassword(""); setConfirm(""); setVisible(false); setStatus("success");

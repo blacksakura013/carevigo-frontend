@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import {
   addHealth,
+  getApiError,
   getPatientProfile,
   getStoredPatient,
   hasPatientSession,
@@ -274,6 +275,7 @@ export function HealthMeasurementFields({
 }
 
 function saveError(error) {
+  if (error?.code === "API_NOT_READY") return getApiError(error);
   if (error?.response?.status === 429)
     return "บันทึกถี่เกินกำหนด กรุณารออย่างน้อย 1 นาทีแล้วลองอีกครั้ง";
   if (!error?.response)
@@ -588,20 +590,23 @@ export default function AddHealth() {
             : {
                 status: "error",
                 message: saveError(result.reason),
-                uncertain: !result.reason?.response,
+                uncertain: !result.reason?.response && result.reason?.requestSent !== false,
               };
       });
       return next;
     });
+    const allUnsent = results.every(result => result.status === "rejected" && result.reason?.requestSent === false);
     try {
-      const fresh = await (patientMode
+      if (!allUnsent) {
+        const fresh = await (patientMode
         ? getPatientProfile()
         : searchUser(citizenId));
-      if (saveVersion.current === requestVersion) {
-        const person = fresh.data?.data?.patient || fresh.data?.data;
-        setProfile(person);
-        const freshRisk = fresh.data?.data?.thaiCvRisk || person?.thaiCvRisk;
-        if (freshRisk) setAssessment(freshRisk);
+        if (saveVersion.current === requestVersion) {
+          const person = fresh.data?.data?.patient || fresh.data?.data;
+          setProfile(person);
+          const freshRisk = fresh.data?.data?.thaiCvRisk || person?.thaiCvRisk;
+          if (freshRisk) setAssessment(freshRisk);
+        }
       }
     } catch {
       /* Saved records remain successful if refreshing the assessment fails. */

@@ -33,7 +33,7 @@ export default function AdminForgotPassword() {
     const request = ++epoch.current;
     setSaving(true); setError(""); setFieldError("");
     try {
-      await requestAdminPasswordReset(normalized);
+      await requestAdminPasswordReset(normalized, { isCurrent: () => active.current && epoch.current === request });
       if (!active.current || epoch.current !== request) return;
       setEmail(""); setSent(true);
     } catch (failure) {

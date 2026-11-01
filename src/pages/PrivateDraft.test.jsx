@@ -6,6 +6,7 @@ import Profile from "./Profile";
 import { addHealth, getPatientProfile, savePatientSession, updatePatientProfile } from "../api/api";
 import { beginSessionLoad, clearSession } from "../utils/session";
 import { clearPrivateDrafts, readPrivateDraft } from "../utils/privateDraft";
+import { apiNotReady } from "../utils/apiReadiness";
 jest.mock("../components/FormPages", () => require("../testUtils/InlineFormPages"));
 
 jest.mock("../api/api", () => ({ ...jest.requireActual("../api/api"), getPatientProfile: jest.fn(), addHealth: jest.fn(), updatePatientProfile: jest.fn() }));
@@ -65,6 +66,23 @@ test("an interrupted pending health write is shown as uncertain and never resent
   reverify(first); render(healthPage()); await readyHealth();
   expect((await screen.findAllByText(/การส่งข้อมูลก่อนหน้าถูกขัดจังหวะ/)).length).toBeGreaterThan(0); expect(screen.getByRole("link", { name: /ตรวจสอบประวัติสุขภาพ/ })).toBeInTheDocument();
   expect(addHealth).toHaveBeenCalledTimes(1);
+});
+
+test("a readiness failure keeps health values retryable without suggesting an unsent record exists", async () => {
+  addHealth.mockRejectedValue(apiNotReady());
+  render(healthPage()); await readyHealth();
+  fill("ความดันตัวบน (SYS)", "123"); fill("ความดันตัวล่าง (DIA)", "81"); accept();
+  fireEvent.click(screen.getByRole("button", { name: "บันทึกข้อมูลสุขภาพ" }));
+  await screen.findByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" });
+  expect(screen.getAllByRole("alert").some(alert => alert.textContent.includes("ข้อมูลที่กรอกยังไม่ถูกส่ง"))).toBe(true);
+  expect(screen.queryByRole("link", { name: /ตรวจสอบประวัติสุขภาพ/ })).not.toBeInTheDocument();
+  expect(screen.getByLabelText("ความดันตัวบน (SYS)")).toHaveValue(123);
+  expect(getPatientProfile).toHaveBeenCalledTimes(1);
+  expect(addHealth).toHaveBeenCalledTimes(1);
+  addHealth.mockResolvedValue({ data: { data: { recordId: "saved-on-retry" } } });
+  fireEvent.click(screen.getByRole("button", { name: "บันทึกส่วนที่ไม่สำเร็จอีกครั้ง" }));
+  await waitFor(() => expect(getPatientProfile).toHaveBeenCalledTimes(2));
+  expect(addHealth).toHaveBeenCalledTimes(2);
 });
 test("an unsaved profile change survives the same verified session and clears on account change", async () => {
   const first = render(profilePage()); await screen.findByLabelText("ชื่อ"); fill("ชื่อ", "แก้ไขค้างไว้");

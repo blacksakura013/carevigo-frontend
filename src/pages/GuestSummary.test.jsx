@@ -259,7 +259,7 @@ test("profile-only guest submission sends no health rows and explicitly summariz
   expect(submitGuestHealth).toHaveBeenCalledTimes(1);
   expect(submitGuestHealth).toHaveBeenCalledWith(expect.objectContaining({ citizenId, records: [],
     profile: expect.objectContaining({ firstName: "สมใจ", lastName: "ดูแลสุขภาพ" }),
-    agreements: expect.objectContaining({ termsAccepted: true, healthDataConsent: true }) }));
+    agreements: expect.objectContaining({ termsAccepted: true, healthDataConsent: true }) }), expect.objectContaining({ isCurrent: expect.any(Function) }));
   expect(summary()).toHaveTextContent("0 รายการ");
   expect(summary()).toHaveTextContent("ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ");
   expect(summary()).toHaveTextContent("รอเจ้าหน้าที่ตรวจสอบ");

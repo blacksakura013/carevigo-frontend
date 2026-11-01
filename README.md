@@ -93,6 +93,27 @@ curl.exe -i "https://carevigoapi.onrender.com/api/auth/session?scope=admin" `
 Keep authentication in server-issued HttpOnly cookies. Manually adding tokens
 to localStorage or sessionStorage is not a supported login recovery method.
 
+## Waiting for a suspended API
+
+Before sending a business request, the client shares an anonymous, uncached
+`/api/health` check across callers and waits up to 90 seconds for the API and
+database to be ready. A notice appears after 1.5 seconds; a warm response stays
+quiet. Successful readiness is reused for five minutes, with no periodic traffic
+while idle. Unready health responses honor the server's bounded `Retry-After`.
+Credentialed requests retain their normal 20-second timeout after readiness.
+
+Only health reads are retried. Login, save, review, password reset and other
+business requests are dispatched once. A business network/server failure expires
+readiness for the next user action; it never resends the failed request. Leaving
+login, guest, recovery or email-review pages cancels their queued dispatch;
+changing accounts cancels pending requests tied to the previous session. A
+readiness timeout preserves the form for a manual retry. Health checks send no
+cookies, account headers or form data, including with a same-origin API.
+
+This handles cold starts in code; it does not change the hosting plan or prevent
+the platform from suspending an idle process. The backend's review/email worker
+catches up on wake and cannot run at 23:59 while its host is suspended.
+
 ## Workflows
 
 - `/guest`: submit recipient details without logging in, with any number of health measurement categories, including none. Acceptance clears the editable fields and shows a read-only summary of this submission: masked citizen ID, entered details/results, submission time, pending status and Thai review deadline. The summary stays only in current-page memory; a new entry, full reload or navigating away inside the app clears it. This page does not fetch receipts, history, profiles, or CV results, and has no account navigation. Unchanged failed retries reuse the same request ID.

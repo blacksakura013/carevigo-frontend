@@ -1,6 +1,7 @@
 import axios from "axios";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
 import { resolveApiBaseUrl } from "../utils/apiUrl";
+import { createApiReadiness } from "../utils/apiReadiness";
 import {
   beginSessionLoad,
   clearSession,
@@ -25,6 +26,28 @@ const API = axios.create({
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
+
+const readiness = createApiReadiness({
+  maxWaitMs: 90000, cacheMs: 300000,
+  probe: async (signal) => {
+    const response = await fetch(`${API.defaults.baseURL.replace(/\/+$/, "")}/health`, {
+      method: "GET", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer", signal,
+    });
+    const body = await response.text();
+    let data;
+    try { data = JSON.parse(body); } catch { data = body; }
+    return { status: response.status, data, retryAfter: response.headers.get("Retry-After") };
+  },
+});
+export const getApiReadinessSnapshot = () => readiness.getSnapshot();
+export const subscribeApiReadiness = listener => readiness.subscribe(listener);
+export const invalidateApiReadiness = () => readiness.invalidate();
+export const waitForApiReadiness = options => readiness.wait(options);
+
+function assertDispatchCurrent(config) {
+  if (config.signal?.aborted || (typeof config.isCurrent === "function" && !config.isCurrent()) || !currentSession(config))
+    throw new axios.CanceledError("Request no longer belongs to the current page or session", config);
+}
 
 export function clearAdminSession() {
   clearSession("admin");
@@ -56,7 +79,7 @@ export function hasAdminSession() {
   return hasSession("admin");
 }
 
-API.interceptors.request.use((config) => {
+API.interceptors.request.use(async (config) => {
   const url = config.url || "";
   const adminOnly =
     /^\/(dashboard|reviews(?!\/email)|users\/admin|users\/[^/]+\/full|auth\/change-password)/.test(
@@ -84,6 +107,25 @@ API.interceptors.request.use((config) => {
     if (!/^(get|head|options)$/i.test(config.method || "get"))
       config.headers["X-CSRF-Token"] = snapshot.csrfToken;
   }
+  // Keep the original account identity while waiting. A replacement account
+  // must never inherit a pending form's payload or captured CSRF headers.
+  assertDispatchCurrent(config);
+  try { await readiness.wait({ signal: config.signal }); }
+  catch (failure) {
+    assertDispatchCurrent(config);
+    const error = new Error(failure.message);
+    error.code = failure.code; error.cause = failure; error.config = config;
+    if (failure.requestSent === false) error.requestSent = false;
+    throw error;
+  }
+  assertDispatchCurrent(config);
+  const adapter = axios.getAdapter(config.adapter);
+  config.adapter = dispatchConfig => {
+    assertDispatchCurrent(dispatchConfig);
+    dispatchConfig.requestDispatched = true;
+    dispatchConfig.onRequestDispatch?.();
+    return adapter(dispatchConfig);
+  };
   return config;
 });
 
@@ -113,6 +155,7 @@ function rememberRotation(response) {
 }
 API.interceptors.response.use(
   (response) => {
+    if (response.status >= 500) readiness.invalidate();
     // Set-Cookie has already happened even when the caller was canceled by
     // logout. Revoke that exact rotated session without reviving its profile.
     rememberRotation(response);
@@ -125,6 +168,8 @@ API.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.config?.requestDispatched && !axios.isCancel(error) && (!error.response || error.response.status >= 500))
+      readiness.invalidate();
     if (!currentSession(error.config))
       return Promise.reject(new axios.CanceledError("Session changed"));
     if (
@@ -250,11 +295,12 @@ function loginScope(scope, url, credentials, { isCurrent = () => true } = {}) {
   return enqueueAuthAction(scope, async () => {
     if (!wanted()) throw new axios.CanceledError("Login form changed");
     const previousSessionId = getSessionSnapshot(scope).sessionId;
-    let response;
-    try { response = await API.post(url, credentials, { sessionScope: scope, sessionLogin: true }); }
+    let response, dispatched = false;
+    try { response = await API.post(url, credentials, { sessionScope: scope, sessionLogin: true,
+      isCurrent: wanted, onRequestDispatch: () => { dispatched = true; } }); }
     catch (error) {
       if (!wanted()) {
-        await revokeUnwantedLogin(scope, null, { previousSessionId });
+        if (dispatched) await revokeUnwantedLogin(scope, null, { previousSessionId });
         throw new axios.CanceledError("Login form changed");
       }
       throw error;
@@ -349,7 +395,7 @@ export function getApiError(
   error,
   fallback = "ดำเนินการไม่สำเร็จ กรุณาลองอีกครั้ง",
 ) {
-  if (["SESSION_COOKIE_UNAVAILABLE", "SESSION_SERVICE_UNAVAILABLE"].includes(error.code)) return error.message;
+  if (["API_NOT_READY", "SESSION_COOKIE_UNAVAILABLE", "SESSION_SERVICE_UNAVAILABLE"].includes(error.code)) return error.message;
   if (error.response?.data?.code === "RESET_LINK_INVALID")
     return "ลิงก์ตั้งรหัสผ่านไม่ถูกต้อง หมดอายุ หรือถูกใช้แล้ว กรุณาขอลิงก์ใหม่";
   if (error.response?.data?.code === "CSRF_INVALID")
@@ -383,12 +429,12 @@ export const getHealthByType = (citizenId, type, page = 1, limit = 10) =>
   });
 export const adminLogin = (email, password, options) =>
   loginScope("admin", "/auth/login", { email, password }, options);
-export const requestAdminPasswordReset = (email) =>
-  API.post("/auth/forgot-password", { email }, { sessionScope: "admin", sessionIndependent: true });
-export const validateAdminPasswordReset = (token) =>
-  API.post("/auth/reset-password/validate", { token }, { sessionScope: "admin", sessionIndependent: true });
-export const resetAdminPassword = (token, password, confirmPassword) =>
-  API.post("/auth/reset-password", { token, password, confirmPassword }, { sessionScope: "admin", sessionIndependent: true })
+export const requestAdminPasswordReset = (email, options = {}) =>
+  API.post("/auth/forgot-password", { email }, { ...options, sessionScope: "admin", sessionIndependent: true });
+export const validateAdminPasswordReset = (token, options = {}) =>
+  API.post("/auth/reset-password/validate", { token }, { ...options, sessionScope: "admin", sessionIndependent: true });
+export const resetAdminPassword = (token, password, confirmPassword, options = {}) =>
+  API.post("/auth/reset-password", { token, password, confirmPassword }, { ...options, sessionScope: "admin", sessionIndependent: true })
     .then((response) => {
       // A successful reset is durable even if refreshing this browser's old
       // session fails. Verify rather than signing out an unrelated staff account.
@@ -454,8 +500,8 @@ export const updatePatientProfile = (data) =>
 export const changePatientPassword = (currentPassword, password) =>
   enqueueAuthAction("patient", () => API.post("/auth/patient/change-password", { currentPassword, password }, { allowSessionRotation: true })
     .then((response) => verifyLogin("patient", response)));
-export const submitGuestHealth = (data) =>
-  API.post("/public/submissions", data);
+export const submitGuestHealth = (data, options = {}) =>
+  API.post("/public/submissions", data, options);
 export const getGuestReceipt = (id, token) =>
   API.get(`/public/submissions/${encodeURIComponent(id)}`, {
     params: { token },
@@ -465,9 +511,9 @@ export const getReviewQueue = (page = 1, limit = 20, filters = {}) =>
 export const decideReviews = (payload) =>
   API.post("/reviews/decision", payload);
 export const getReviewSettings = () => API.get("/reviews/settings");
-export const getEmailReview = (token) =>
-  API.get("/reviews/email", { params: { token } });
-export const decideEmailReview = (token, action) =>
-  API.post("/reviews/email", { token, action });
+export const getEmailReview = (token, options = {}) =>
+  API.get("/reviews/email", { ...options, params: { token } });
+export const decideEmailReview = (token, action, options = {}) =>
+  API.post("/reviews/email", { token, action }, options);
 
 export default API;

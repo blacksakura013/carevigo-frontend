@@ -10,6 +10,11 @@ import API, {
 import { beginSessionLoad, clearSession, installSessionSync, SESSION_EVENT_KEY } from "../utils/session";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
 
+jest.mock("../utils/apiReadiness", () => ({ createApiReadiness: () => ({
+  wait: () => Promise.resolve(), invalidate: jest.fn(),
+  getSnapshot: () => ({ status: "ready" }), subscribe: () => () => {},
+}) }));
+
 const originalAdapter = API.defaults.adapter;
 
 test.each(["admin", "patient"])("a deployed backend missing the %s session route is reported as unavailable service", async scope => {

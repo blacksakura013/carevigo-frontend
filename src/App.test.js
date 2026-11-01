@@ -12,6 +12,7 @@ import {
 } from "./api/api";
 import { beginSessionLoad, clearSession, failSessionLoad } from "./utils/session";
 import { notifyPasswordChanged } from "./utils/flowFeedback";
+import { apiNotReady } from "./utils/apiReadiness";
 
 jest.mock("./api/api", () => ({
   ...jest.requireActual("./api/api"),
@@ -84,13 +85,23 @@ test.each(["/login", "/admin/login"])("%s distinguishes missing deployed authent
   await waitFor(() => expect(screen.getByLabelText(pathname === "/login" ? /^เลขบัตรประชาชน/ : /^อีเมล/)).toBeEnabled());
 });
 
+test.each(["/login", "/admin/login"])("%s explains a server that did not become ready without blaming credentials or internet", async pathname => {
+  failSessionLoad("admin", apiNotReady());
+  window.history.replaceState({}, "", pathname);
+  render(<App />);
+  expect(screen.getByRole("alert")).toHaveTextContent("ระบบยังไม่พร้อมให้บริการ");
+  expect(screen.queryByText(/ตรวจสอบอินเทอร์เน็ต/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "ลองอีกครั้ง" }));
+  await waitFor(() => expect(screen.getByLabelText(pathname === "/login" ? /^เลขบัตรประชาชน/ : /^อีเมล/)).toBeEnabled());
+});
+
 test("the reset link survives session revalidation and revoked staff sessions do not interrupt reset success", async () => {
   const token = "A".repeat(43);
   saveAdminSession(staffSession());
   window.history.replaceState({}, "", `/admin/reset-password#token=${token}`);
   render(<App />);
   const password = await screen.findByLabelText(/^รหัสผ่านใหม่/);
-  expect(validateAdminPasswordReset).toHaveBeenCalledWith(token);
+  expect(validateAdminPasswordReset).toHaveBeenCalledWith(token, expect.objectContaining({ isCurrent: expect.any(Function) }));
   expect(window.location.hash).toBe("");
   fireEvent.change(password, { target: { value: "new-password-123" } });
   await act(async () => { beginSessionLoad("admin"); });
@@ -104,7 +115,7 @@ test("the reset link survives session revalidation and revoked staff sessions do
   fireEvent.click(screen.getByRole("button", { name: /บันทึกรหัสผ่านใหม่/ }));
   expect(await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/)).toBeInTheDocument();
   expect(window.location.pathname).toBe("/admin/reset-password");
-  expect(resetAdminPassword).toHaveBeenCalledWith(token, "new-password-123", "new-password-123");
+  expect(resetAdminPassword).toHaveBeenCalledWith(token, "new-password-123", "new-password-123", expect.objectContaining({ isCurrent: expect.any(Function) }));
   expect(screen.queryByLabelText(/^รหัสผ่านใหม่/)).not.toBeInTheDocument();
 });
 

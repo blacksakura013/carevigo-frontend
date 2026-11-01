@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { decideEmailReview, getEmailReview } from "../api/api";
+import { decideEmailReview, getApiError, getEmailReview } from "../api/api";
 import { Brand, Button, EmptyState, Notice } from "../components/ui";
 import "../styles/review-email.css";
 import SubmittedProfileDetails from "../components/SubmittedProfileDetails";
@@ -60,6 +60,8 @@ function valueLabel(record) {
 export default function EmailReview() {
   const [params] = useSearchParams();
   const token = params.get("token") || "";
+  const currentToken = useRef(token);
+  currentToken.current = token;
   const [data, setData] = useState(null),
     [loading, setLoading] = useState(true),
     [saving, setSaving] = useState(false),
@@ -81,12 +83,12 @@ export default function EmailReview() {
       return;
     }
     try {
-      const response = await getEmailReview(token);
+      const response = await getEmailReview(token, { isCurrent: () => current === version.current && currentToken.current === token });
       if (current === version.current) setData(response.data?.data || null);
     } catch (failure) {
       if (current === version.current)
         setError(
-          !failure.response
+          failure.code === "API_NOT_READY" ? getApiError(failure) : !failure.response
             ? "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองอีกครั้ง"
             : "ลิงก์นี้ไม่ถูกต้องหรือหมดอายุ กรุณาเข้าสู่ระบบเจ้าหน้าที่เพื่อตรวจสอบรายการ",
         );
@@ -107,7 +109,7 @@ export default function EmailReview() {
     setSaving(true);
     setError("");
     try {
-      const response = await decideEmailReview(token, action);
+      const response = await decideEmailReview(token, action, { isCurrent: () => current === version.current && currentToken.current === token });
       if (current !== version.current) return;
       const changed = response.data?.data?.changed ?? 0;
       setSuccess(
@@ -120,7 +122,7 @@ export default function EmailReview() {
     } catch (failure) {
       if (current === version.current)
         setError(
-          !failure.response
+          failure.code === "API_NOT_READY" ? getApiError(failure) : !failure.response
             ? "ยังยืนยันผลการดำเนินการไม่ได้ กรุณาโหลดข้อมูลล่าสุดก่อนลองใหม่"
             : "ดำเนินการไม่สำเร็จ รายการอาจได้รับการตรวจสอบไปแล้ว กรุณาโหลดข้อมูลล่าสุด",
         );

@@ -13,6 +13,7 @@ const firstToken = "A".repeat(43), secondToken = "B".repeat(43);
 const valid = { data: { data: { valid: true } } };
 const expired = { response: { status: 400, data: { code: "RESET_LINK_INVALID" } } };
 const failure = { response: { status: 503 } };
+const dispatchOptions = expect.objectContaining({ isCurrent: expect.any(Function) });
 function LocationControls() {
   const location = useLocation(), navigate = useNavigate();
   return <><output data-testid="location">{location.pathname}{location.hash}</output>
@@ -48,7 +49,7 @@ test("forgot-password validates the email and does not reveal whether a submitte
   fill(/อีเมลบัญชีเจ้าหน้าที่/, "STAFF@example.test");
   fireEvent.click(screen.getByRole("button", { name: "ส่งลิงก์ตั้งรหัสผ่านใหม่" }));
   expect(await screen.findByText(/รับคำขอแล้ว หากอีเมลนี้ตรงกับบัญชีเจ้าหน้าที่/)).toBeVisible();
-  expect(requestAdminPasswordReset).toHaveBeenCalledWith("staff@example.test");
+  expect(requestAdminPasswordReset).toHaveBeenCalledWith("staff@example.test", dispatchOptions);
   expect(screen.queryByText(/พบบัญชี|ไม่มีบัญชี|ส่งอีเมลถึงแล้ว/)).not.toBeInTheDocument();
   expect(screen.getByText(/รออย่างน้อย 1 นาที/)).toBeVisible();
   expect(screen.queryByDisplayValue("STAFF@example.test")).not.toBeInTheDocument();
@@ -76,7 +77,7 @@ test("captures the fragment in memory, removes it immediately, and keeps it thro
   validateAdminPasswordReset.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
   const view = render(<RecoveryApp />);
   expect(screen.getByTestId("location")).toHaveTextContent(/^\/admin\/reset-password$/);
-  expect(validateAdminPasswordReset).toHaveBeenCalledWith(firstToken);
+  expect(validateAdminPasswordReset).toHaveBeenCalledWith(firstToken, dispatchOptions);
   expect(screen.queryByLabelText(/^รหัสผ่านใหม่/)).not.toBeInTheDocument();
   view.rerender(<RecoveryApp revision={1} />);
   expect(validateAdminPasswordReset).toHaveBeenCalledTimes(1);
@@ -110,7 +111,7 @@ test("validation network errors retry the same in-memory token after the fragmen
   expect(screen.getByTestId("location")).not.toHaveTextContent(firstToken);
   fireEvent.click(screen.getByRole("button", { name: "ลองตรวจสอบลิงก์อีกครั้ง" }));
   await screen.findByLabelText(/^รหัสผ่านใหม่/);
-  expect(validateAdminPasswordReset.mock.calls).toEqual([[firstToken], [firstToken]]);
+  expect(validateAdminPasswordReset.mock.calls.map(([token]) => token)).toEqual([firstToken, firstToken]);
 });
 
 test("password validation enforces length, UTF-8 byte limit and confirmation before any write", async () => {
@@ -135,7 +136,7 @@ test("reset locks duplicate writes, clears credentials on success and offers log
   expect(screen.getByRole("button", { name: "ซ่อนรหัสผ่าน" })).toHaveAttribute("aria-pressed", "true");
   submitReset(); submitReset();
   expect(resetAdminPassword).toHaveBeenCalledTimes(1);
-  expect(resetAdminPassword).toHaveBeenCalledWith(firstToken, "new-password-123", "new-password-123");
+  expect(resetAdminPassword).toHaveBeenCalledWith(firstToken, "new-password-123", "new-password-123", dispatchOptions);
   expect(input(/^รหัสผ่านใหม่/)).toBeDisabled();
   await act(async () => { complete({ status: 200 }); });
   expect(await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/)).toBeVisible();
@@ -171,7 +172,7 @@ test.each(["invalid", "success"])("a new fragment in the same tab replaces the o
   expect(screen.getByTestId("location")).not.toHaveTextContent(secondToken);
   fillPasswords("second-password-123"); submitReset();
   await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/);
-  expect(resetAdminPassword).toHaveBeenLastCalledWith(secondToken, "second-password-123", "second-password-123");
+  expect(resetAdminPassword).toHaveBeenLastCalledWith(secondToken, "second-password-123", "second-password-123", dispatchOptions);
 });
 
 test("an old validation response cannot replace a newer fragment in the same component", async () => {
@@ -183,7 +184,7 @@ test("an old validation response cannot replace a newer fragment in the same com
   await act(async () => { completeOld({ data: { data: { valid: false } } }); });
   expect(input(/^รหัสผ่านใหม่/)).toBeVisible();
   fillPasswords(); submitReset(); await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/);
-  expect(resetAdminPassword).toHaveBeenCalledWith(secondToken, "new-password-123", "new-password-123");
+  expect(resetAdminPassword).toHaveBeenCalledWith(secondToken, "new-password-123", "new-password-123", dispatchOptions);
 });
 
 test("leaving a pending recovery request does not display its late result on the next page", async () => {
@@ -204,7 +205,7 @@ test("the skip link focuses the recovery content without overwriting its in-memo
   fireEvent.click(screen.getByRole("link", { name: "ข้ามไปยังการกู้คืนบัญชี" }));
   expect(screen.getByRole("main")).toHaveFocus();
   fillPasswords(); submitReset(); await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/);
-  expect(resetAdminPassword).toHaveBeenCalledWith(firstToken, "new-password-123", "new-password-123");
+  expect(resetAdminPassword).toHaveBeenCalledWith(firstToken, "new-password-123", "new-password-123", dispatchOptions);
   expect(validateAdminPasswordReset).toHaveBeenCalledTimes(1);
 });
 
@@ -214,7 +215,7 @@ test("StrictMode keeps the captured token through effect cleanup and hash remova
   expect(screen.getByTestId("location")).toHaveTextContent(/^\/admin\/reset-password$/);
   fillPasswords(); submitReset(); await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/);
   expect(resetAdminPassword).toHaveBeenCalledTimes(1);
-  expect(resetAdminPassword).toHaveBeenCalledWith(firstToken, "new-password-123", "new-password-123");
+  expect(resetAdminPassword).toHaveBeenCalledWith(firstToken, "new-password-123", "new-password-123", dispatchOptions);
 });
 
 test("a late reset for the old link cannot unlock or complete a pending reset from a newer link", async () => {
@@ -235,7 +236,7 @@ test("a late reset for the old link cannot unlock or complete a pending reset fr
   expect(resetAdminPassword).toHaveBeenCalledTimes(2);
   await act(async () => { completeNew({ status: 200 }); });
   expect(await screen.findByText(/ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว/)).toBeVisible();
-  expect(resetAdminPassword).toHaveBeenLastCalledWith(secondToken, "second-password-123", "second-password-123");
+  expect(resetAdminPassword).toHaveBeenLastCalledWith(secondToken, "second-password-123", "second-password-123", dispatchOptions);
 });
 
 test("leaving a pending reset does not apply its late success to the next page", async () => {

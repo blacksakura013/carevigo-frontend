@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import EmailReview from "./EmailReview";
 import { decideEmailReview, getEmailReview } from "../api/api";
+import { apiNotReady } from "../utils/apiReadiness";
 jest.mock("../api/api", () => ({
+  getApiError: jest.requireActual("../api/api").getApiError,
   decideEmailReview: jest.fn(),
   getEmailReview: jest.fn(),
 }));
@@ -52,7 +54,7 @@ test("profile-only submissions remain reviewable without displaying invented cli
 test("opening an email approve link only reads the scoped submission and requires a confirmation", async () => {
   renderPage();
   await screen.findByText("ผู้รับบริการ ทดสอบ");
-  expect(getEmailReview).toHaveBeenCalledWith("opaque-token");
+  expect(getEmailReview).toHaveBeenCalledWith("opaque-token", expect.objectContaining({ isCurrent: expect.any(Function) }));
   expect(decideEmailReview).not.toHaveBeenCalled();
   expect(
     screen.getByRole("button", { name: "ยืนยันการรับรอง" }),
@@ -89,7 +91,7 @@ test("email cancellation is confirmed and the cancelled record remains visible i
   });
   fireEvent.click(screen.getByRole("button", { name: "ยืนยันการยกเลิก" }));
   await waitFor(() =>
-    expect(decideEmailReview).toHaveBeenCalledWith("opaque-token", "reject"),
+    expect(decideEmailReview).toHaveBeenCalledWith("opaque-token", "reject", expect.objectContaining({ isCurrent: expect.any(Function) })),
   );
   expect(
     await screen.findByText("ยกเลิก 1 รายการเรียบร้อยแล้ว"),
@@ -112,4 +114,16 @@ test("an invalid email link has a recovery path without any record disclosure", 
     "/admin?view=reviews",
   );
   expect(decideEmailReview).not.toHaveBeenCalled();
+});
+
+test.each(["load", "decision"])("a known-unsent email review %s explains readiness without claiming an uncertain decision", async stage => {
+  if (stage === "load") getEmailReview.mockRejectedValueOnce(apiNotReady());
+  else decideEmailReview.mockRejectedValueOnce(apiNotReady());
+  renderPage();
+  if (stage === "decision") {
+    fireEvent.click(await screen.findByRole("button", { name: "ยืนยันการรับรอง" }));
+  }
+  expect(await screen.findByRole("alert")).toHaveTextContent("ข้อมูลที่กรอกยังไม่ถูกส่ง");
+  expect(screen.queryByText(/ยังยืนยันผลการดำเนินการไม่ได้/)).not.toBeInTheDocument();
+  expect(decideEmailReview).toHaveBeenCalledTimes(stage === "decision" ? 1 : 0);
 });

@@ -284,7 +284,7 @@ export default function GuestHealth() {
       const response = await submitGuestHealth({
         ...payload,
         clientRequestId: requestKey.current.id,
-      });
+      }, { isCurrent: () => activeRef.current });
       if (!activeRef.current) return;
       const data = response.data?.data;
       if (!data?.submissionId) throw new Error("Missing submission acknowledgement");

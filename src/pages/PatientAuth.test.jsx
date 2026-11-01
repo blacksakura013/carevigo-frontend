@@ -25,6 +25,7 @@ import {
   savePatientSession,
 } from "../api/api";
 import { clearSession, failSessionLoad } from "../utils/session";
+import { apiNotReady } from "../utils/apiReadiness";
 
 jest.mock("../api/api", () => ({
   ...jest.requireActual("../api/api"),
@@ -112,6 +113,26 @@ test("keeps an unsuccessful login on the form and gives an account recovery path
     screen.getByText(/ติดต่อเจ้าหน้าที่ของหน่วยงานเพื่อเปิดบัญชี/),
   ).toBeInTheDocument();
   expect(localStorage.getItem("patientAccessToken")).toBeNull();
+});
+
+test.each(["patient", "admin"])("%s login keeps the draft and explains a cold-start timeout", async scope => {
+  const staff = scope === "admin";
+  const login = staff ? adminLogin : loginPatient;
+  login.mockRejectedValueOnce(apiNotReady());
+  window.history.replaceState({}, "", staff ? "/admin/login" : "/login");
+  render(<App />);
+  const identity = screen.getByLabelText(staff ? /^อีเมล/ : /เลขบัตรประชาชน/);
+  fireEvent.change(identity, { target: { value: staff ? "staff@example.test" : ownId } });
+  fireEvent.change(screen.getByLabelText(/^รหัสผ่าน/), { target: { value: "synthetic-password" } });
+  fireEvent.click(screen.getByRole("button", { name: staff ? "เข้าสู่ระบบ" : "เข้าสู่บัญชีของฉัน" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("ระบบยังไม่พร้อมให้บริการ");
+  expect(screen.getByRole("alert")).not.toHaveTextContent("ตรวจสอบอีเมลและรหัสผ่าน");
+  expect(identity).toHaveValue(staff ? "staff@example.test" : ownId);
+  expect(screen.getByLabelText(/^รหัสผ่าน/)).toHaveValue("synthetic-password");
+  expect(identity).toBeEnabled();
+  expect(login).toHaveBeenCalledTimes(1);
+  expect(getStoredAdmin()).toBeNull();
+  expect(getStoredPatient()).toBeNull();
 });
 test("first login sends the temporary code to mandatory password setup before reading health data", async () => {
   loginPatient.mockResolvedValueOnce(response(true));

@@ -40,6 +40,7 @@ import {
   storePatientProfile,
 } from "./api/api";
 import { getLandingDestination, normalizePathname } from "./utils/navigation";
+import ServerReadinessNotice from "./components/ServerReadinessNotice";
 
 const PUBLIC_ADMIN_AUTH_PATHS = new Set(["/admin/login", "/admin/forgot-password", "/admin/reset-password"]);
 const isPublicAdminAuthPath = pathname => PUBLIC_ADMIN_AUTH_PATHS.has(normalizePathname(pathname));
@@ -51,7 +52,9 @@ function SessionBoundary({ scope, children }) {
     return <PublicLayout><div className="panel empty-state" role="status">กำลังตรวจสอบการเข้าสู่ระบบ…</div></PublicLayout>;
   const failed = sessions.filter((session) => session.status === "error");
   if (failed.length)
-    return <PublicLayout><Notice tone="error">{failed.some(session => session.error?.code === "SESSION_SERVICE_UNAVAILABLE")
+    return <PublicLayout><Notice tone="error">{failed.some(session => session.error?.code === "API_NOT_READY")
+      ? getApiError(failed.find(session => session.error?.code === "API_NOT_READY").error)
+      : failed.some(session => session.error?.code === "SESSION_SERVICE_UNAVAILABLE")
       ? "ระบบเข้าสู่ระบบยังไม่พร้อมให้บริการ กรุณาติดต่อเจ้าหน้าที่ หรือบันทึกข้อมูลโดยไม่เข้าสู่ระบบ"
       : "ตรวจสอบการเข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง"}</Notice>
       <Button variant="secondary" onClick={() => Promise.allSettled(failed.map((session) => restoreSession(session.scope, { force: true })))}>ลองอีกครั้ง</Button>
@@ -288,6 +291,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <NavigationEffects />
+      <ServerReadinessNotice />
       <LogoutNotice />
       <PasswordChangeNotice />
       <Routes>
