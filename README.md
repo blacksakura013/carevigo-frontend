@@ -284,3 +284,25 @@ is stated in the card. Low-glucose oral carbohydrate advice is conditional on sa
 swallowing, with child-specific guidance instead of a fixed adult15g amount.
 No result recommends changing medication without a clinician. The separate CV
 risk percentage never overrides acute warning signs or derives from BMI labels.
+
+## Staff health dashboard
+
+The dashboard follows the earlier count-card and record-table layout. Four
+clickable cards show the global number of BP, glucose, lipid and BMI **records**
+across all review states. The record list immediately follows. Member totals,
+today's Bangkok totals, verification work and the member CV risk overview are
+secondary; a member count is never presented as a measurement count.
+
+Search, type, review status, stored Thai CV risk, legacy BMI group and sorting
+are applied by `/api/dashboard/health` before pagination. Search waits350ms;
+changing a filter resets to page1 and stale responses cannot replace the new
+result. The advanced filters keep BMI grouping separate from the ten-year CV
+score. Deploy the matching backend filter contract before this frontend.
+
+Each row shows all supplied measurements, an interpretation with a textual
+severity, a next step, and expandable guidance. HbA1c-only records do not invent
+an FBS result. Guest interpretation uses the submitted demographic snapshot.
+Historic urgent readings ask staff to check current symptoms/results before
+acting; row CV risk is explicitly the assessment stored with that record.
+Legacy BMI-only records retain the stored number neutrally when weight/height
+are missing. The UI does not fetch clinical history to fill missing values.

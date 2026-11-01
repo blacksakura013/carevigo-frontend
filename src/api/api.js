@@ -452,10 +452,15 @@ export const changeAdminPassword = (password) =>
 export const adminLogout = () => logoutScope("admin");
 export const getDashboardSummary = () => API.get("/dashboard/summary");
 export const getDashboardUsers = () => API.get("/dashboard/users");
-export const getDashboardHealth = (page = 1, limit = 100, type) =>
-  API.get("/dashboard/health", {
-    params: { page, limit, ...(type && type !== "all" ? { type } : {}) },
+export const getDashboardHealth = (page = 1, limit = 100, filters = {}) => {
+  const selected = typeof filters === "string" ? { type: filters } : filters || {};
+  const params = { page, limit };
+  ["type", "search", "reviewStatus", "riskLevel", "bmiLevel", "sort"].forEach(key => {
+    const value = selected[key];
+    if (typeof value === "string" && value.trim() && value !== "all") params[key] = value.trim();
   });
+  return API.get("/dashboard/health", { params });
+};
 export const getDashboardRisk = () => API.get("/dashboard/risk");
 export const getDashboardVerification = () =>
   API.get("/dashboard/verification");

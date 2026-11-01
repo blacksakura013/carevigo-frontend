@@ -1,7 +1,6 @@
 import React, {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -9,6 +8,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { formatThaiDate } from "../utils/thaiDate";
 import {
   Activity,
+  AlertTriangle,
   ArrowDownUp,
   ArrowRight,
   Check,
@@ -21,6 +21,7 @@ import {
   EyeOff,
   Heart,
   HeartPulse,
+  Info,
   Menu,
   RefreshCw,
   Search,
@@ -58,8 +59,11 @@ import ReviewQueue, {
   ReviewStatusBadge,
 } from "../components/admin/ReviewQueue";
 import "../styles/admin.css";
+import "../styles/admin-dashboard.css";
 import LegalLinks from "../components/LegalLinks";
 import { notifyPasswordChanged } from "../utils/flowFeedback";
+import { getDashboardRecordModel } from "../utils/dashboardRecord";
+import { getCvRiskPresentation } from "../utils/cvRisk";
 
 const PAGE_SIZE = 20;
 const TYPES = {
@@ -121,7 +125,7 @@ const SMOKING_LABELS = {
   former: "เคยสูบและเลิกแล้ว",
 };
 const MENU_LABELS = {
-  dashboard: "ภาพรวมการดูแล",
+  dashboard: "แดชบอร์ดสุขภาพ",
   members: "ทะเบียนสมาชิก",
   reviews: "ตรวจสอบบันทึก",
   verification: "ยืนยันสมาชิก",
@@ -150,15 +154,10 @@ function readProfile() {
   }
 }
 function recordValue(record) {
-  const value = record?.value || {};
-  const shown = (v) => (v === null || v === undefined || v === "" ? "—" : v);
-  if (record?.type === "blood_pressure")
-    return `${shown(value.systolic)}/${shown(value.diastolic)} mmHg`;
-  if (record?.type === "sugar") return `${shown(value.fbs)} mg/dL`;
-  if (record?.type === "cholesterol") return `${shown(value.total)} mg/dL`;
-  if (record?.type === "bmi")
-    return record.bmi != null ? `${record.bmi} kg/m²` : "—";
-  return "—";
+  const { measurements } = getDashboardRecordModel(record);
+  return measurements.length
+    ? measurements.map(item => `${item.label} ${item.value}${item.unit ? ` ${item.unit}` : ""}`).join(" · ")
+    : "ยังไม่มีค่าที่แสดงได้";
 }
 function MemberStatus({ user }) {
   return (
@@ -175,37 +174,13 @@ function MemberStatus({ user }) {
     </span>
   );
 }
-function BmiBadge({ record }) {
-  const assessment = BMI_LEVELS[record?.cvdRisk?.level];
-  return assessment ? (
-    <span className={`badge badge-${assessment[1]}`}>{assessment[0]}</span>
-  ) : (
-    <span className="muted">ไม่มีข้อมูล BMI</span>
-  );
-}
 function getCvLevel(risk) {
-  if (
-    risk?.status !== "calculated" ||
-    typeof risk.score !== "number" ||
-    !Number.isFinite(risk.score) ||
-    risk.score < 0
-  )
-    return null;
-  return risk.score < 10 ? "low" : risk.score <= 20 ? "moderate" : "high";
+  return getCvRiskPresentation(risk)?.level || null;
 }
 function CvRiskBadge({ risk, showReason = false }) {
   const level = getCvLevel(risk);
   if (level) {
-    const rounded = Number(risk.score.toFixed(2));
-    const displayScore =
-      risk.displayScore ||
-      (risk.score > 30
-        ? ">30%"
-        : level === "low" && rounded >= 10
-          ? "<10%"
-          : level === "high" && rounded <= 20
-            ? ">20%"
-            : `${risk.score.toLocaleString("th-TH", { maximumFractionDigits: 2 })}%`);
+    const displayScore = getCvRiskPresentation(risk).percent;
     return (
       <div className="admin-cv-result">
         <span className={`badge badge-${CV_LEVELS[level].tone}`}>
@@ -283,94 +258,6 @@ function Pagination({ page, total, hasMore, onChange, loading }) {
     </div>
   );
 }
-function StatCard({ icon: Icon, label, value, note, tone = "mint" }) {
-  return (
-    <div className="admin-stat-card" data-motion-enter="panel">
-      <div className={`admin-stat-icon ${tone}`}>
-        <Icon size={21} />
-      </div>
-      <span className="admin-stat-label">{label}</span>
-      <strong>{formatNumber(value)}</strong>
-      <span className="admin-stat-note">{note}</span>
-    </div>
-  );
-}
-
-function HealthChart({ summary, loading, error }) {
-  const bars = Object.entries(TYPES).map(([key, type]) => ({
-    ...type,
-    value: Number(summary?.[key]) || 0,
-  }));
-  const total = bars.reduce((sum, bar) => sum + bar.value, 0);
-  const max = Math.max(...bars.map((bar) => bar.value), 1);
-  return (
-    <section className="panel admin-chart-panel">
-      <div className="panel-header">
-        <div>
-          <span className="eyebrow">HEALTH ACTIVITY</span>
-          <h2 className="section-heading">ภาพรวมการบันทึกสุขภาพ</h2>
-          <p className="muted">จำนวนรายการทั้งหมด แยกตามประเภท</p>
-        </div>
-        <span className="admin-chart-key">
-          <span /> ข้อมูลในระบบ
-        </span>
-      </div>
-      {loading ? (
-        <Skeleton />
-      ) : error ? (
-        <div className="panel-body">
-          <Notice tone="error">{error}</Notice>
-        </div>
-      ) : total === 0 ? (
-        <EmptyState
-          icon={Activity}
-          title="ยังไม่มีการบันทึกสุขภาพ"
-          description="กราฟจะแสดงเมื่อมีสมาชิกบันทึกข้อมูลเข้ามา"
-        />
-      ) : (
-        <>
-          <div
-            className="admin-bar-chart"
-            role="img"
-            aria-label={bars
-              .map((bar) => `${bar.label} ${bar.value} รายการ`)
-              .join(", ")}
-          >
-            <div className="admin-chart-grid">
-              <span>{formatNumber(max)}</span>
-              <span>{formatNumber(max / 2)}</span>
-              <span>0</span>
-            </div>
-            <div className="admin-chart-bars">
-              {bars.map((bar) => (
-                <div className="admin-chart-column" key={bar.label}>
-                  <strong>{formatNumber(bar.value)}</strong>
-                  <div className="admin-chart-bar-track">
-                    <div
-                      className="admin-chart-bar"
-                      style={{
-                        height: `${(bar.value / max) * 100}%`,
-                        background: bar.color,
-                      }}
-                    />
-                  </div>
-                  <span>{bar.short}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="admin-chart-footer">
-            <ClipboardList size={16} />
-            <span>
-              รวม <strong>{formatNumber(total)}</strong> รายการบันทึกสุขภาพ
-            </span>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
-
 function RiskOverview({ counts, loading, onSelect }) {
   const unavailable = counts
     ? (Number(counts.incomplete) || 0) + (Number(counts.ineligible) || 0)
@@ -384,7 +271,7 @@ function RiskOverview({ counts, loading, onSelect }) {
             ความเสี่ยงโรคหัวใจและหลอดเลือดของสมาชิก
           </h2>
           <p className="muted">
-            โอกาสเกิดโรคใน 10 ปี · นับสมาชิกแต่ละคนจากผลประเมินล่าสุด
+            โอกาสเกิดโรคใน 10 ปี · นับสมาชิกแต่ละคนจากผลประเมินล่าสุดที่บันทึกไว้
           </p>
         </div>
         <HeartPulse size={24} />
@@ -448,14 +335,16 @@ export default function AdminDashboard() {
   const [health, setHealth] = useState({
     records: [],
     summary: {},
-    total: 0,
+    total: null,
     hasMore: false,
   });
   const [healthPage, setHealthPage] = useState(1);
   const [healthLoading, setHealthLoading] = useState(true);
   const [healthError, setHealthError] = useState("");
   const [search, setSearch] = useState("");
+  const [healthQuery, setHealthQuery] = useState("");
   const [type, setType] = useState("all");
+  const [reviewStatus, setReviewStatus] = useState("all");
   const [bmiLevel, setBmiLevel] = useState("all");
   const [riskLevel, setRiskLevel] = useState("all");
   const [sort, setSort] = useState("newest");
@@ -508,14 +397,19 @@ export default function AdminDashboard() {
     let cancelled = false;
     setHealthLoading(true);
     setHealthError("");
-    getDashboardHealth(healthPage, PAGE_SIZE)
+    getDashboardHealth(healthPage, PAGE_SIZE, { search: healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort })
       .then((response) => {
         if (!cancelled) {
           const body = response?.data || {};
+          if (body.data?.summaryScope !== "all") {
+            setHealth({ records: [], summary: {}, total: null, hasMore: false });
+            setHealthError("API ยังไม่รองรับการค้นหาทั้งระบบ กรุณาอัปเดต backend แล้วรีเฟรช");
+            return;
+          }
           setHealth({
             records: body.data?.records || [],
             summary: body.data?.summary || {},
-            total: body.total || 0,
+            total: Number.isFinite(body.total) && body.total >= 0 ? body.total : null,
             hasMore: Boolean(body.hasMore),
           });
         }
@@ -530,7 +424,12 @@ export default function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [healthPage, refreshKey]);
+  }, [healthPage, refreshKey, healthQuery, type, reviewStatus, riskLevel, bmiLevel, sort]);
+  useEffect(() => {
+    if (search.trim() === healthQuery) return undefined;
+    const timer = setTimeout(() => { setHealthQuery(search.trim()); setHealthPage(1); }, 350);
+    return () => clearTimeout(timer);
+  }, [search, healthQuery]);
   useEffect(() => {
     if (usersSearch.trim() === usersQuery) return undefined;
     const timer = setTimeout(() => {
@@ -639,48 +538,13 @@ export default function AdminDashboard() {
   const refresh = () => {
     setRefreshKey((key) => key + 1);
   };
-  const records = useMemo(
-    () =>
-      health.records
-        .filter((record) => {
-          const query = search.trim().toLowerCase();
-          const match = [
-            fullName(record.user),
-            record.user?.citizenId,
-            record.user?.province,
-          ].some((value) =>
-            String(value || "")
-              .toLowerCase()
-              .includes(query),
-          );
-          const cvLevel = getCvLevel(record.thaiCvRisk);
-          return (
-            match &&
-            (type === "all" || record.type === type) &&
-            (bmiLevel === "all" || record.cvdRisk?.level === bmiLevel) &&
-            (riskLevel === "all" ||
-              (riskLevel === "unavailable" && !cvLevel) ||
-              cvLevel === riskLevel)
-          );
-        })
-        .sort((a, b) => {
-          if (sort === "name")
-            return fullName(a.user).localeCompare(fullName(b.user), "th");
-          if (sort === "risk_desc" || sort === "risk_asc") {
-            const aScore = getCvLevel(a.thaiCvRisk) ? a.thaiCvRisk.score : null;
-            const bScore = getCvLevel(b.thaiCvRisk) ? b.thaiCvRisk.score : null;
-            if (aScore === null) return bScore === null ? 0 : 1;
-            if (bScore === null) return -1;
-            return (bScore - aScore) * (sort === "risk_asc" ? -1 : 1);
-          }
-          return (
-            (new Date(b.createdAt).getTime() -
-              new Date(a.createdAt).getTime()) *
-            (sort === "oldest" ? -1 : 1)
-          );
-        }),
-    [health.records, search, type, bmiLevel, riskLevel, sort],
-  );
+  const records = health.records;
+  const hasHealthFilters = Boolean(healthQuery || type !== "all" || reviewStatus !== "all" || riskLevel !== "all" || bmiLevel !== "all");
+  const changeHealthFilter = (setter, value) => { setter(value); setHealthPage(1); };
+  const clearHealthFilters = () => {
+    setSearch(""); setHealthQuery(""); setType("all"); setReviewStatus("all");
+    setBmiLevel("all"); setRiskLevel("all"); setSort("newest"); setHealthPage(1);
+  };
   const approve = async () => {
     if (!selected?._id || approving) return;
     setApproving(true);
@@ -700,17 +564,9 @@ export default function AdminDashboard() {
       setApproving(false);
     }
   };
-  const verified = Number(verification?.verified) || 0;
-  const pending = Number(verification?.pending) || 0;
-  const rejected = Number(verification?.rejected) || 0;
-  const verificationTotal =
-    Number(verification?.total ?? summary?.totalUsers) || 0;
-  const verifiedPercent = verificationTotal
-    ? Math.round((verified / verificationTotal) * 100)
-    : 0;
 
   return (
-    <div className="admin-shell">
+    <div className={`admin-shell${activeMenu === "dashboard" ? " admin-dashboard-view" : ""}`}>
       <a className="admin-skip-link" href="#admin-main">
         ข้ามไปยังเนื้อหา
       </a>
@@ -754,7 +610,7 @@ export default function AdminDashboard() {
             title={MENU_LABELS[activeMenu]}
             description={
               activeMenu === "dashboard"
-                ? "เห็นภาพสุขภาพชัดเจน เชื่อมต่อทุกการดูแลไว้ในที่เดียว"
+                ? "เลือกหมวดผลตรวจ แล้วดูค่า การแปลผล และสิ่งที่ควรทำต่อ"
                 : activeMenu === "members"
                   ? "ค้นหาและเปิดดูข้อมูลสมาชิก พร้อมประวัติการบันทึกสุขภาพ"
                   : activeMenu === "verification"
@@ -795,224 +651,84 @@ export default function AdminDashboard() {
           )}
           {activeMenu === "dashboard" && (
             <>
-              <section className="admin-welcome" data-motion-enter="panel">
-                <div>
-                  <div className="admin-welcome-label">
-                    <span /> พร้อมดูแลไปด้วยกัน
-                  </div>
-                  <h2>ทุกการดูแล เริ่มต้นจากข้อมูลที่ชัดเจน</h2>
-                  <p>
-                    ติดตามการบันทึกสุขภาพ
-                    และให้สมาชิกเข้าถึงการดูแลอย่างต่อเนื่อง
-                  </p>
-                  <button onClick={() => changeMenu("members")}>
-                    ดูทะเบียนสมาชิก <ArrowRight size={16} />
-                  </button>
-                </div>
-                <div className="admin-welcome-art" aria-hidden="true">
-                  <div className="admin-welcome-orbit" />
-                  <HeartPulse size={75} strokeWidth={1.1} />
-                  <span className="admin-art-plus">+</span>
-                </div>
+              <section className="admin-health-type-cards" aria-label="จำนวนบันทึกสุขภาพแยกตามประเภท">
+                {Object.entries(TYPES).map(([key, item]) => {
+                  const Icon = item.icon;
+                  return <button type="button" key={key}
+                    className={`admin-health-type-card admin-health-type-${key}${type === key ? " is-selected" : ""}`}
+                    aria-pressed={type === key}
+                    onClick={() => changeHealthFilter(setType, key)}
+                    disabled={healthLoading && !Object.keys(health.summary).length}>
+                    <span className="admin-health-type-icon"><Icon size={27} aria-hidden="true" /></span>
+                    <span className="admin-health-type-label">{item.label}{key === "bmi" ? " (BMI)" : ""}</span>
+                    <strong>{formatNumber(health.summary[key])}<small>รายการ</small></strong>
+                    <span className="admin-health-type-note">ทั้งหมดในระบบ · ทุกสถานะรายการ</span>
+                  </button>;
+                })}
               </section>
-              <div className="admin-stats">
-                <StatCard
-                  icon={Users}
-                  label="สมาชิกทั้งหมด"
-                  value={summary?.totalUsers}
-                  note="สมาชิกที่ลงทะเบียนในระบบ"
-                />
-                <StatCard
-                  icon={ClipboardList}
-                  label="บันทึกสุขภาพทั้งหมด"
-                  value={summary?.totalHealthRecords}
-                  note="รวมทุกประเภทการบันทึก"
-                  tone="blue"
-                />
-                <StatCard
-                  icon={HeartPulse}
-                  label="บันทึกสุขภาพวันนี้"
-                  value={summary?.todayHealthRecords}
-                  note="ตามวันที่ของระบบเซิร์ฟเวอร์"
-                  tone="rose"
-                />
-                <StatCard
-                  icon={ShieldCheck}
-                  label="สมาชิกรอยืนยัน"
-                  value={verification?.pending}
-                  note="รอผู้ดูแลตรวจสอบข้อมูล"
-                  tone="amber"
-                />
-              </div>
-              <RiskOverview
-                counts={summary?.thaiCvRisk}
-                loading={overviewLoading}
-                onSelect={openRiskMembers}
-              />
-              <div className="admin-overview-grid">
-                <HealthChart
-                  summary={health.summary}
-                  loading={healthLoading && !health.records.length}
-                  error={healthError}
-                />
-                <section className="panel admin-verification-card">
-                  <div className="panel-header">
-                    <div>
-                      <span className="eyebrow">MEMBER VERIFICATION</span>
-                      <h2 className="section-heading">การยืนยันสมาชิก</h2>
-                    </div>
-                    <ShieldCheck size={23} />
-                  </div>
-                  {overviewLoading ? (
-                    <Skeleton rows={3} />
-                  ) : !verification ? (
-                    <EmptyState
-                      icon={ShieldCheck}
-                      title="ยังโหลดข้อมูลไม่ได้"
-                      description="รีเฟรชข้อมูลเพื่อลองอีกครั้ง"
-                    />
-                  ) : (
-                    <div className="panel-body">
-                      <div className="admin-verification-number">
-                        <strong>
-                          {verifiedPercent}
-                          <small>%</small>
-                        </strong>
-                        <span>ยืนยันแล้วจากสถานะที่ระบบรายงาน</span>
-                      </div>
-                      <div
-                        className="admin-verification-progress"
-                        role="img"
-                        aria-label={`ยืนยันแล้ว ${verified} รอยืนยัน ${pending} ไม่ผ่าน ${rejected}`}
-                      >
-                        <span style={{ width: `${verifiedPercent}%` }} />
-                      </div>
-                      <div className="admin-verification-line">
-                        <span>
-                          <i className="is-verified" />
-                          ยืนยันแล้ว
-                        </span>
-                        <strong>
-                          {formatNumber(verified)} <small>คน</small>
-                        </strong>
-                      </div>
-                      <div className="admin-verification-line">
-                        <span>
-                          <i className="is-pending" />
-                          รอการยืนยัน
-                        </span>
-                        <strong>
-                          {formatNumber(pending)} <small>คน</small>
-                        </strong>
-                      </div>
-                      {rejected > 0 && (
-                        <div className="admin-verification-line">
-                          <span>
-                            <i className="is-rejected" />
-                            ไม่ผ่านการยืนยัน
-                          </span>
-                          <strong>
-                            {formatNumber(rejected)} <small>คน</small>
-                          </strong>
-                        </div>
-                      )}
-                      <Button
-                        variant="secondary"
-                        onClick={() => changeMenu("verification")}
-                      >
-                        ตรวจสอบสมาชิก <ArrowRight size={16} />
-                      </Button>
-                    </div>
-                  )}
-                </section>
-              </div>
               <section className="panel admin-records-panel">
                 <div className="panel-header">
                   <div>
                     <span className="eyebrow">HEALTH RECORDS</span>
                     <h2 className="section-heading">
-                      บันทึกสุขภาพล่าสุด{" "}
+                      รายการผลตรวจสุขภาพ{" "}
                       <span className="admin-heading-count">
                         {formatNumber(health.total)}
                       </span>
                     </h2>
                     <p className="muted">
-                      ค้นหา กรอง และเรียงลำดับเฉพาะ {health.records.length}{" "}
-                      รายการในหน้านี้
+                      ค้นหาและกรองรายการทั้งระบบ · หน้าละ {PAGE_SIZE} รายการ
                     </p>
                   </div>
                   <span className="admin-updated">
                     {lastUpdated
-                      ? `อัปเดต ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.`
+                      ? `อัปเดต ${dateLabel(lastUpdated, true)} น.`
                       : "กำลังอัปเดต"}
                   </span>
                 </div>
                 <div className="admin-record-filters">
                   <label className="admin-search">
-                    <Search size={18} />
-                    <input
-                      className="input"
-                      aria-label="ค้นหาบันทึกสุขภาพในหน้านี้"
-                      placeholder="ค้นหาชื่อ เลขประจำตัว หรือจังหวัด"
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                    />
+                    <Search size={18} aria-hidden="true" />
+                    <input className="input" aria-label="ค้นหาบันทึกสุขภาพ" placeholder="ค้นหาชื่อ เลขบัตรประชาชน หรือจังหวัด"
+                      value={search} onChange={event => setSearch(event.target.value)} />
                   </label>
-                  <select
-                    className="input"
-                    aria-label="ประเภทบันทึก"
-                    value={type}
-                    onChange={(event) => setType(event.target.value)}
-                  >
-                    <option value="all">ทุกประเภท</option>
-                    {Object.entries(TYPES).map(([key, item]) => (
-                      <option key={key} value={key}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="input"
-                    aria-label="ความเสี่ยง Thai CV"
-                    value={riskLevel}
-                    onChange={(event) => setRiskLevel(event.target.value)}
-                  >
-                    <option value="all">ทุกระดับ Thai CV</option>
-                    {Object.entries(CV_LEVELS).map(([key, item]) => (
-                      <option key={key} value={key}>
-                        {item.label} ({item.range})
-                      </option>
-                    ))}
-                    <option value="unavailable">ยังประเมินไม่ได้</option>
-                  </select>
-                  <select
-                    className="input"
-                    aria-label="การจัดกลุ่ม BMI"
-                    value={bmiLevel}
-                    onChange={(event) => setBmiLevel(event.target.value)}
-                  >
-                    <option value="all">ทุกกลุ่ม BMI</option>
-                    {Object.entries(BMI_LEVELS).map(([key, [label]]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="admin-sort">
-                    <ArrowDownUp size={15} />
-                    <select
-                      className="input"
-                      aria-label="เรียงลำดับบันทึก"
-                      value={sort}
-                      onChange={(event) => setSort(event.target.value)}
-                    >
-                      <option value="newest">ใหม่สุดก่อน</option>
-                      <option value="oldest">เก่าสุดก่อน</option>
-                      <option value="name">ตามชื่อสมาชิก</option>
-                      <option value="risk_desc">Thai CV สูงสุดก่อน</option>
-                      <option value="risk_asc">Thai CV ต่ำสุดก่อน</option>
+                  <label className="admin-record-filter-label"><span>ประเภทบันทึก</span>
+                    <select className="input" aria-label="ประเภทบันทึก" value={type} onChange={event => changeHealthFilter(setType, event.target.value)}>
+                      <option value="all">ทุกประเภท</option>
+                      {Object.entries(TYPES).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
                     </select>
                   </label>
+                  <label className="admin-record-filter-label"><span>สถานะรายการ</span>
+                    <select className="input" aria-label="สถานะรายการ" value={reviewStatus} onChange={event => changeHealthFilter(setReviewStatus, event.target.value)}>
+                      <option value="all">ทุกสถานะรายการ</option><option value="pending">รอตรวจสอบ</option>
+                      <option value="approved">ยืนยันแล้ว</option><option value="rejected">ยกเลิกแล้ว</option>
+                    </select>
+                  </label>
+                  <Button variant="secondary" className="admin-filter-reset" onClick={clearHealthFilters}>ล้างตัวกรอง</Button>
+                  <details className="admin-record-advanced">
+                    <summary>ตัวกรองเพิ่มเติมและการเรียงลำดับ</summary>
+                    <div className="admin-record-advanced-controls">
+                      <label className="admin-record-filter-label"><span>Thai CV Risk ณ เวลาบันทึก</span>
+                        <select className="input" aria-label="ความเสี่ยง Thai CV" value={riskLevel} onChange={event => changeHealthFilter(setRiskLevel, event.target.value)}>
+                          <option value="all">ทุกระดับ Thai CV</option>
+                          {Object.entries(CV_LEVELS).map(([key, item]) => <option key={key} value={key}>{item.label} ({item.range})</option>)}
+                          <option value="unavailable">ยังประเมินไม่ได้</option>
+                        </select>
+                      </label>
+                      <label className="admin-record-filter-label"><span>กลุ่ม BMI ที่ระบบบันทึกไว้</span>
+                        <select className="input" aria-label="การจัดกลุ่ม BMI" value={bmiLevel} onChange={event => changeHealthFilter(setBmiLevel, event.target.value)}>
+                          <option value="all">ทุกกลุ่ม BMI</option>
+                          {Object.entries(BMI_LEVELS).map(([key, [label]]) => <option key={key} value={key}>{label}</option>)}
+                        </select>
+                      </label>
+                      <label className="admin-record-filter-label"><span><ArrowDownUp size={16} aria-hidden="true" /> เรียงลำดับ</span>
+                        <select className="input" aria-label="เรียงลำดับบันทึก" value={sort} onChange={event => changeHealthFilter(setSort, event.target.value)}>
+                          <option value="newest">ใหม่สุดก่อน</option><option value="oldest">เก่าสุดก่อน</option><option value="name">ตามชื่อสมาชิก</option>
+                          <option value="risk_desc">Thai CV สูงสุดก่อน</option><option value="risk_asc">Thai CV ต่ำสุดก่อน</option>
+                        </select>
+                      </label>
+                    </div>
+                  </details>
                 </div>
                 {healthLoading ? (
                   <Skeleton rows={5} />
@@ -1024,111 +740,52 @@ export default function AdminDashboard() {
                     </Button>
                   </div>
                 ) : !records.length ? (
-                  <EmptyState
-                    icon={ClipboardList}
-                    title={
-                      health.records.length
-                        ? "ไม่พบข้อมูลที่ตรงกับตัวกรอง"
-                        : "ยังไม่มีบันทึกสุขภาพ"
-                    }
-                    description={
-                      health.records.length
-                        ? "ลองเปลี่ยนคำค้นหาหรือเลือกประเภทอื่น"
-                        : "ข้อมูลจะแสดงเมื่อสมาชิกบันทึกสุขภาพ"
-                    }
-                    action={
-                      health.records.length ? (
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setSearch("");
-                            setType("all");
-                            setBmiLevel("all");
-                            setRiskLevel("all");
-                          }}
-                        >
-                          ล้างตัวกรอง
-                        </Button>
-                      ) : undefined
-                    }
-                  />
+                  <EmptyState icon={ClipboardList}
+                    title={hasHealthFilters ? "ไม่พบข้อมูลที่ตรงกับตัวกรอง" : "ยังไม่มีบันทึกสุขภาพ"}
+                    description={hasHealthFilters ? "ลองเปลี่ยนคำค้นหา หรือล้างตัวกรองเพื่อดูรายการทั้งหมด" : "ข้อมูลจะแสดงเมื่อมีการบันทึกผลตรวจสุขภาพ"} />
                 ) : (
                   <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="ตารางบันทึกสุขภาพ เลื่อนเพื่อดูข้อมูลเพิ่มเติม">
-                    <table className="admin-table admin-health-table">
+                    <table className="admin-table admin-health-table" role="table">
                       <caption className="sr-only">บันทึกสุขภาพสมาชิก</caption>
-                      <thead>
-                        <tr>
-                          <th>สมาชิก</th>
-                          <th>ประเภท / ค่าที่บันทึก</th>
-                          <th>Thai CV Risk · 10 ปี</th>
-                          <th>การจัดกลุ่ม BMI</th>
-                          <th>จังหวัด</th>
-                          <th>วันที่บันทึก</th>
-                          <th>
-                            <span className="sr-only">รายละเอียด</span>
-                          </th>
-                        </tr>
-                      </thead>
+                      <thead><tr>
+                        <th scope="col">ผู้รับบริการ</th><th scope="col">ประเภทและค่าที่บันทึก</th>
+                        <th scope="col">การแปลผล</th><th scope="col">ควรทำอย่างไรต่อ</th><th scope="col">Thai CV Risk · 10 ปี</th>
+                      </tr></thead>
                       <tbody>
-                        {records.map((record) => {
+                        {records.map(record => {
+                          const model = getDashboardRecordModel(record);
+                          const person = record.user || (record.source === "guest" ? record.submittedProfile : null);
                           const TypeIcon = TYPES[record.type]?.icon || Activity;
-                          return (
-                            <tr key={record._id}>
-                              <td>
-                                <div className="admin-person">
-                                  <span className="admin-person-avatar">
-                                    {fullName(record.user).slice(0, 1)}
-                                  </span>
-                                  <div>
-                                    <strong>{fullName(record.user)}</strong>
-                                    <span>
-                                      {maskCitizenId(record.user?.citizenId)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="admin-record-value">
-                                  <TypeIcon size={16} />
-                                  <div>
-                                    <strong>{recordValue(record)}</strong>
-                                    <span>
-                                      {TYPES[record.type]?.label || record.type}
-                                    </span>
-                                    <ReviewStatusBadge
-                                      status={record.reviewStatus || "approved"}
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <CvRiskBadge risk={record.thaiCvRisk} />
-                              </td>
-                              <td>
-                                <BmiBadge record={record} />
-                                {record.bmi != null && (
-                                  <span className="admin-cell-note">
-                                    BMI {record.bmi} kg/m²
-                                  </span>
-                                )}
-                              </td>
-                              <td>{record.user?.province || "—"}</td>
-                              <td className="admin-date-cell">
-                                {dateLabel(record.createdAt, true)}
-                              </td>
-                              <td>
-                                {record.user?._id && (
-                                  <button
-                                    className="admin-table-action"
-                                    aria-label={`ดูข้อมูล ${fullName(record.user)}`}
-                                    onClick={() => setSelected(record.user)}
-                                  >
-                                    <ChevronRight size={18} />
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          );
+                          const StatusIcon = model.level === "normal" ? CheckCircle2 : ["high", "urgent", "watch"].includes(model.level) ? AlertTriangle : Info;
+                          return <tr key={record._id}>
+                            <td data-label="ผู้รับบริการ"><div className="admin-person">
+                              <span className="admin-person-avatar" aria-hidden="true">{fullName(person).slice(0, 1)}</span>
+                              <div><strong>{fullName(person)}</strong><span>{maskCitizenId(record.user?.citizenId || record.citizenId)}</span>
+                                {record.user?.province && <span>{record.user.province}</span>}
+                              </div>
+                            </div><span className="admin-record-date">{dateLabel(record.createdAt, true)}</span>
+                              {record.user?._id ? <button className="admin-table-action" aria-label={`ดูข้อมูล ${fullName(person)}`} onClick={() => setSelected(record.user)}><Eye size={20} aria-hidden="true" />รายละเอียด</button> : <span className="admin-cell-note">ยังไม่เชื่อมทะเบียนสมาชิก</span>}
+                            </td>
+                            <td data-label="ประเภทและค่าที่บันทึก"><div className="admin-record-category"><TypeIcon size={22} aria-hidden="true" />{TYPES[record.type]?.label || "ไม่ระบุประเภท"}</div>
+                              {["pending", "approved", "rejected"].includes(record.reviewStatus)
+                                ? <ReviewStatusBadge status={record.reviewStatus} /> : <span className="badge badge-neutral">ไม่ระบุสถานะรายการ</span>}
+                              {model.measurements.length ? <dl className="admin-record-measurements">
+                              {model.measurements.map((item, index) => <div key={`${item.label}-${index}`}><dt>{item.label}</dt><dd>{item.value}{item.unit ? ` ${item.unit}` : ""}</dd></div>)}
+                            </dl> : <span>ยังไม่มีค่าที่แสดงได้</span>}</td>
+                            <td data-label="การแปลผล"><div className="admin-record-interpretation">
+                              <span className={`admin-record-level admin-record-level-${model.level}`}><StatusIcon size={20} aria-hidden="true" />{model.label}</span>
+                            </div></td>
+                            <td data-label="ควรทำอย่างไรต่อ" className="admin-record-next-action"><p>{model.nextAction}</p>
+                              {model.details.length > 0 && <details className="admin-record-guidance"><summary>คำแนะนำเพิ่มเติม</summary>
+                                <p>ใช้คำแนะนำนี้เมื่อค่าตรวจยังเป็นปัจจุบัน หากเป็นผลเดิมให้ตรวจสอบอาการและผลตรวจล่าสุดก่อน</p>
+                                {model.details.map(card => <section key={card.id}><h4>{card.title}</h4><p>{card.explanation}</p>
+                                  <ul>{card.actions.map(action => <li key={action}>{action}</li>)}</ul><p>{card.reference}</p>
+                                </section>)}
+                                <ul>{model.sources.map(source => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer noopener">{source.title}</a></li>)}</ul>
+                              </details>}
+                            </td>
+                            <td data-label="Thai CV Risk · 10 ปี"><CvRiskBadge risk={record.thaiCvRisk} /><span className="admin-cell-note">คะแนน ณ เวลาบันทึก</span></td>
+                          </tr>;
                         })}
                       </tbody>
                     </table>
@@ -1144,11 +801,16 @@ export default function AdminDashboard() {
                   />
                 )}
                 <p className="admin-clinical-note">
-                  Thai CV Risk แสดงผลประเมินที่บันทึก ณ เวลานั้น
-                  แยกจากการจัดกลุ่ม BMI
-                  และแสดงเฉพาะข้อมูลที่ครบตามเกณฑ์แบบประเมิน
+                  ผลสุขภาพเป็นการคัดกรองจากค่าตามวันที่บันทึก ไม่ใช่การวินิจฉัยหรือการยืนยันอาการปัจจุบัน
+                  เมื่อไม่มีวันเกิดจะใช้เกณฑ์ผู้ใหญ่ทั่วไป ส่วน Thai CV Risk เป็นความเสี่ยงใน 10 ปี ณ เวลาบันทึก แยกจาก BMI และระดับผลตรวจแต่ละรายการ
                 </p>
               </section>
+              <section className="admin-dashboard-secondary" aria-label="ข้อมูลสมาชิกและการดูแล">
+                <div><span>สมาชิกทั้งหมด</span><strong>{formatNumber(summary?.totalUsers)} คน</strong><small>สมาชิกในทะเบียน</small></div>
+                <div><span>บันทึกสุขภาพวันนี้</span><strong>{formatNumber(summary?.todayHealthRecords)} รายการ</strong><small>วันที่ปัจจุบันตามเวลาไทย</small></div>
+                <button type="button" onClick={() => changeMenu("verification")}><span>สมาชิกรอยืนยัน</span><strong>{formatNumber(verification?.pending)} คน</strong><small>เปิดตรวจสอบทะเบียนสมาชิก · แยกจากสถานะผลตรวจ</small></button>
+              </section>
+              <RiskOverview counts={summary?.thaiCvRisk} loading={overviewLoading} onSelect={openRiskMembers} />
             </>
           )}
           {(activeMenu === "members" || activeMenu === "verification") && (

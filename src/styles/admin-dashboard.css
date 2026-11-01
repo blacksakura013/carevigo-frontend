@@ -1,0 +1,98 @@
+/* Dashboard changes stay scoped so member, review and settings tools retain their layout. */
+:root body .admin-dashboard-view .admin-main { display: grid; gap: 24px; min-width: 0; }
+:root body .admin-dashboard-view .page-heading { margin-bottom: 0; }
+:root body .admin-dashboard-view .admin-main :is(p, label, select, input, .btn, td, th, summary) { font-size: 1.125rem; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-main :is(.input, .btn) { min-height: 50px; }
+:root body .admin-dashboard-view .admin-health-type-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+:root body .admin-dashboard-view .admin-health-type-card { --type-accent: #a73946; --type-tint: #fff1f3; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 8px; padding: 20px; min-width: 0; border: 2px solid #bdcfc6; border-top: 6px solid var(--type-accent); border-radius: 15px; background: #fff; color: #243c32; text-align: left; cursor: pointer; }
+:root body .admin-dashboard-view .admin-health-type-sugar { --type-accent: #205da5; --type-tint: #edf4ff; }
+:root body .admin-dashboard-view .admin-health-type-cholesterol { --type-accent: #795700; --type-tint: #fff6d8; }
+:root body .admin-dashboard-view .admin-health-type-bmi { --type-accent: #116b61; --type-tint: #eaf6f3; }
+:root body .admin-dashboard-view .admin-health-type-card.is-selected { border-color: var(--type-accent); background: var(--type-tint); box-shadow: 0 0 0 2px var(--type-accent); }
+:root body .admin-dashboard-view .admin-health-type-card:focus-visible { outline: 3px solid #08766c; outline-offset: 4px; }
+:root body .admin-dashboard-view .admin-health-type-card:disabled { cursor: wait; opacity: .7; }
+:root body .admin-dashboard-view .admin-health-type-icon { grid-column: 2; grid-row: 1 / 3; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--type-tint); color: var(--type-accent); }
+:root body .admin-dashboard-view .admin-health-type-label { font-size: 1.125rem; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-health-type-card strong { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 2rem; line-height: 1.3; color: var(--type-accent); }
+:root body .admin-dashboard-view .admin-health-type-card strong small, :root body .admin-dashboard-view .admin-health-type-note { font-size: 1rem; line-height: 1.6; color: #42594f; }
+:root body .admin-dashboard-view .admin-health-type-note { grid-column: 1 / -1; }
+:root body .admin-dashboard-view .admin-records-panel { min-width: 0; margin: 0; }
+:root body .admin-dashboard-view .admin-records-panel .panel-header { flex-wrap: wrap; gap: 14px; padding: 22px 24px; }
+:root body .admin-dashboard-view .admin-records-panel .section-heading { font-size: 1.4rem; line-height: 1.6; }
+:root body .admin-dashboard-view .admin-records-panel .muted, :root body .admin-dashboard-view .admin-updated { color: #42594f; font-size: 1rem; line-height: 1.7; white-space: normal; }
+:root body .admin-dashboard-view .admin-record-filters { grid-template-columns: minmax(220px, 2fr) minmax(160px, 1fr) minmax(160px, 1fr) auto; align-items: end; }
+:root body .admin-dashboard-view .admin-record-filters > .admin-search { grid-column: auto; }
+:root body .admin-dashboard-view .admin-record-advanced { grid-column: 1 / -1; }
+:root body .admin-dashboard-view .admin-record-advanced summary { padding: 8px 0; cursor: pointer; color: #225a48; font-weight: 700; }
+:root body .admin-dashboard-view .admin-record-advanced-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 10px; }
+:root body .admin-dashboard-view .admin-record-filter-label { display: grid; gap: 6px; min-width: 0; color: #314c40; }
+:root body .admin-dashboard-view .admin-record-filters .input { width: 100%; min-width: 0; color: #1c3b2c; background: #fff; }
+:root body .admin-dashboard-view .admin-filter-reset { justify-self: start; }
+:root body .admin-dashboard-view .admin-health-table { min-width: 1060px; }
+:root body .admin-dashboard-view .admin-health-table th { color: #314c40; background: #edf5ef; font-weight: 700; padding: 16px; }
+:root body .admin-dashboard-view .admin-health-table td { color: #304b3d; padding: 20px 16px; vertical-align: top; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-health-table .admin-person { min-width: 170px; align-items: flex-start; }
+:root body .admin-dashboard-view .admin-health-table .admin-person strong { font-size: 1.125rem; font-weight: 700; line-height: 1.7; color: #1f3e2f; white-space: normal; }
+:root body .admin-dashboard-view .admin-health-table .admin-person div > span { font-size: 1.125rem; color: #42594f; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-health-table .admin-person-avatar { width: 38px; height: 38px; font-size: 1.125rem; }
+:root body .admin-dashboard-view .admin-record-date { display: block; margin-top: 12px; font-size: 1.125rem; line-height: 1.7; color: #42594f; }
+:root body .admin-dashboard-view .admin-health-table .admin-date-cell { font-size: 1.125rem !important; color: #42594f !important; white-space: normal; min-width: 135px; }
+:root body .admin-dashboard-view .admin-record-category { display: inline-flex; align-items: center; gap: 8px; color: #244e3b; font-weight: 700; }
+:root body .admin-dashboard-view .admin-record-category svg { flex-shrink: 0; }
+:root body .admin-dashboard-view .admin-record-measurements { display: grid; gap: 10px; min-width: 170px; margin: 14px 0 0; }
+:root body .admin-dashboard-view .admin-record-measurements div { display: grid; gap: 1px; }
+:root body .admin-dashboard-view .admin-record-measurements dt { font-size: 1.125rem; color: #42594f; }
+:root body .admin-dashboard-view .admin-record-measurements dd { margin: 0; font-size: 1.125rem; font-weight: 700; color: #183c2a; }
+:root body .admin-dashboard-view .admin-record-interpretation { display: grid; gap: 8px; min-width: 170px; }
+:root body .admin-dashboard-view .admin-record-level { display: inline-flex; align-items: flex-start; gap: 7px; padding: 8px 10px; border-radius: 9px; border: 1px solid #748b7e; background: #f0f4f6; color: #3a5260; font-size: 1.125rem; font-weight: 700; line-height: 1.7; }
+:root body .admin-dashboard-view .admin-record-level svg { flex: 0 0 20px; margin-top: 4px; }
+:root body .admin-dashboard-view .admin-record-level-normal { background: #eaf8ef; color: #14623d; border-color: #14623d; }
+:root body .admin-dashboard-view .admin-record-level-watch { background: #fff5cc; color: #735000; border-color: #9b7000; }
+:root body .admin-dashboard-view .admin-record-level-high, :root body .admin-dashboard-view .admin-record-level-urgent { background: #fff0f0; color: #a5232a; border-color: #a5232a; }
+:root body .admin-dashboard-view .admin-record-next-action { min-width: 220px; max-width: 340px; color: #294836; }
+:root body .admin-dashboard-view .admin-record-next-action p { margin: 0; }
+:root body .admin-dashboard-view .admin-record-guidance { margin-top: 12px; }
+:root body .admin-dashboard-view .admin-record-guidance summary { min-height: 44px; padding: 7px 0; color: #1d6045; cursor: pointer; font-weight: 700; }
+:root body .admin-dashboard-view .admin-record-guidance :is(p, li, a, h4) { font-size: 1.125rem; line-height: 1.8; overflow-wrap: anywhere; }
+:root body .admin-dashboard-view .admin-record-guidance section { display: grid; gap: 8px; padding-top: 14px; }
+:root body .admin-dashboard-view .admin-record-guidance h4 { margin: 0; color: #203e2f; }
+:root body .admin-dashboard-view .admin-record-guidance ul { padding-left: 1.2em; margin: 10px 0; }
+:root body .admin-dashboard-view .admin-record-guidance a { color: #0c6254; text-decoration: underline; }
+:root body .admin-dashboard-view .admin-health-table .badge { font-size: 1.125rem; font-weight: 600; line-height: 1.7; white-space: normal; }
+:root body .admin-dashboard-view .admin-health-table .admin-cell-note { font-size: 1rem; color: #42594f; }
+:root body .admin-dashboard-view .admin-health-table .admin-table-action { display: inline-flex; align-items: center; gap: 7px; width: auto; height: auto; min-width: 48px; min-height: 48px; margin-top: 12px; padding: 8px 10px; font-size: 1.125rem; color: #1d6045; border-color: #92b39e; }
+:root body .admin-dashboard-view .admin-pagination { color: #42594f; font-size: 1rem; flex-wrap: wrap; }
+:root body .admin-dashboard-view .admin-clinical-note { padding: 18px 24px; font-size: 1.125rem; line-height: 1.8; color: #42594f; }
+:root body .admin-dashboard-view .admin-dashboard-secondary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+:root body .admin-dashboard-view .admin-dashboard-secondary > :is(div, button) { display: grid; gap: 6px; padding: 18px; min-width: 0; border: 1px solid #bdcfc6; border-radius: 13px; background: #fff; color: #2c4c3b; text-align: left; font: inherit; }
+:root body .admin-dashboard-view .admin-dashboard-secondary button { cursor: pointer; }
+:root body .admin-dashboard-view .admin-dashboard-secondary span { font-size: 1.125rem; font-weight: 600; }
+:root body .admin-dashboard-view .admin-dashboard-secondary strong { font-size: 1.5rem; color: #1d6045; }
+:root body .admin-dashboard-view .admin-dashboard-secondary small { font-size: 1rem; line-height: 1.7; color: #42594f; }
+/* Full history values also appear in member drawers outside the dashboard view. */
+:root body .admin-shell .admin-member-drawer .admin-member-history-row { flex-wrap: wrap; align-items: flex-start; }
+:root body .admin-shell .admin-member-drawer .admin-member-history-row > div { min-width: 0; }
+:root body .admin-shell .admin-member-drawer .admin-member-history-row > b { flex: 0 1 100%; min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 1.125rem; line-height: 1.8; }
+@media (max-width: 1100px) {
+  :root body .admin-dashboard-view .admin-health-type-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root body .admin-dashboard-view .admin-record-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :root body .admin-dashboard-view .admin-record-filters > .admin-search { grid-column: 1 / -1; }
+}
+@media (max-width: 740px) {
+  :root body .admin-dashboard-view .admin-health-type-cards { gap: 12px; }
+  :root body .admin-dashboard-view .admin-health-type-card { padding: 16px 12px; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  :root body .admin-dashboard-view .admin-health-type-icon { grid-column: 1; grid-row: auto; width: 36px; height: 36px; }
+  :root body .admin-dashboard-view .admin-health-type-note { grid-column: 1; }
+  :root body .admin-dashboard-view .admin-record-filters, :root body .admin-dashboard-view .admin-record-advanced-controls, :root body .admin-dashboard-view .admin-dashboard-secondary { grid-template-columns: minmax(0, 1fr); }
+  :root body .admin-dashboard-view .admin-records-panel .panel-header { padding: 20px; }
+  :root body .admin-dashboard-view .admin-updated { display: block; }
+  :root body .admin-dashboard-view .admin-health-table { display: block; min-width: 0; }
+  :root body .admin-dashboard-view .admin-health-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+  :root body .admin-dashboard-view .admin-health-table tbody { display: grid; gap: 16px; padding: 0 16px 16px; }
+  :root body .admin-dashboard-view .admin-health-table tr { display: grid; grid-template-columns: minmax(0, 1fr); border: 1px solid #bdcfc6; border-radius: 12px; overflow: hidden; background: #fff; }
+  :root body .admin-dashboard-view .admin-health-table td { display: block; min-width: 0; max-width: none; width: auto; padding: 14px 16px; }
+  :root body .admin-dashboard-view .admin-health-table td::before { content: attr(data-label); display: block; margin-bottom: 7px; font-size: 1rem; line-height: 1.7; font-weight: 700; color: #42594f; }
+  :root body .admin-dashboard-view .admin-health-table .admin-record-measurements { min-width: 0; }
+  :root body .admin-dashboard-view .admin-health-table .admin-date-cell { min-width: 0; }
+  :root body .admin-dashboard-view .admin-record-interpretation { min-width: 0; }
+}

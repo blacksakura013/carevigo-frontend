@@ -5,7 +5,7 @@ import API, {
   patientLogout, restoreSession, saveAdminSession, savePatientSession,
   storePatientProfile, submitGuestHealth, changePatientPassword, changeAdminPassword, updatePatientProfile,
   requestAdminPasswordReset, validateAdminPasswordReset, resetAdminPassword,
-  searchUser, getGuestProfile,
+  searchUser, getGuestProfile, getDashboardHealth,
 } from "./api";
 import { beginSessionLoad, clearSession, installSessionSync, SESSION_EVENT_KEY } from "../utils/session";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
@@ -16,6 +16,27 @@ jest.mock("../utils/apiReadiness", () => ({ createApiReadiness: () => ({
 }) }));
 
 const originalAdapter = API.defaults.adapter;
+
+test("dashboard sends complete server filters in staff scope and retains the legacy type argument", async () => {
+  saveAdminSession(session("admin", "dashboard-staff"));
+  const previousPath = window.location.pathname + window.location.search;
+  window.history.replaceState({}, "", "/admin?view=dashboard");
+  const queries = [];
+  API.defaults.adapter = async config => {
+    expect(config.url).toBe("/dashboard/health"); expect(config.headers["X-Carevigo-Scope"]).toBe("admin");
+    queries.push(config.params); return ok(config, { records: [] });
+  };
+  try {
+    await getDashboardHealth(2, 20, { search: " สมาชิก ", type: "sugar", reviewStatus: "pending", riskLevel: "moderate", bmiLevel: "normal", sort: "oldest", injected: "ignored" });
+    await getDashboardHealth(1, 20, "blood_pressure");
+    await getDashboardHealth(1, 20, { search: " ", type: "all", riskLevel: "all" });
+  } finally { window.history.replaceState({}, "", previousPath); }
+  expect(queries).toEqual([
+    { page: 2, limit: 20, search: "สมาชิก", type: "sugar", reviewStatus: "pending", riskLevel: "moderate", bmiLevel: "normal", sort: "oldest" },
+    { page: 1, limit: 20, type: "blood_pressure" },
+    { page: 1, limit: 20 },
+  ]);
+});
 
 test("public guest personal lookup omits account identity and cookies even with both signed-in accounts", async () => {
   saveAdminSession(session("admin", "staff-private")); savePatientSession(session("patient", "patient-private"));
