@@ -57,3 +57,13 @@ test("mandatory initial password setup always takes precedence over a saved pati
   for (const from of ["/history/1234567890123", "/profile", "/settings#password", "https://example.test", null])
     expect(getPatientDestination(from, temporary)).toBe("/settings?required=1");
 });
+
+test("progress return destinations keep staff context and canonicalize members to their own identity", () => {
+  expect(getAdminDestination("/admin/progress/9999999999999?days=90")).toBe("/admin/progress/9999999999999?days=90");
+  expect(getAdminDestination("/admin/progress")).toBe("/admin/progress");
+  expect(getPatientDestination("/progress/9999999999999", patient)).toBe("/progress/1234567890123");
+  expect(getPatientDestination("/progress", patient)).toBe("/progress/1234567890123");
+  for (const target of ["/admin/progress/not-id", "/admin/progress/9999999999999/export", "//example.test/admin/progress"])
+    expect(getAdminDestination(target)).toBe("/admin");
+  expect(getPatientDestination("/admin/progress/9999999999999", patient)).toBe("/");
+});

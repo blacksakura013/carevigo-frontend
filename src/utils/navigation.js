@@ -26,7 +26,7 @@ export function getLandingDestination({ hasAdmin = false, hasPatient = false, pa
 
 export function getAdminDestination(from) {
   const target = localDestination(from);
-  return target && ["/admin", "/register"].includes(target.pathname)
+  return target && (["/admin", "/register"].includes(target.pathname) || /^\/admin\/progress(?:\/\d{13})?$/.test(target.pathname))
     ? `${target.pathname}${target.suffix}` : "/admin";
 }
 
@@ -36,7 +36,7 @@ export function getPatientDestination(from, patient) {
   if (!target) return "/";
   if (["/", "/profile", "/settings"].includes(target.pathname))
     return `${target.pathname}${target.suffix}`;
-  const record = target.pathname.match(/^\/(health|history)(?:\/\d{13})?$/);
+  const record = target.pathname.match(/^\/(health|history|progress)(?:\/\d{13})?$/);
   if (record && /^\d{13}$/.test(patient?.citizenId || ""))
     return `/${record[1]}/${patient.citizenId}${target.suffix}`;
   return "/";

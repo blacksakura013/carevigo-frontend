@@ -21,6 +21,7 @@ import {
   LogOut,
   Settings,
   UserRound,
+  TrendingUp,
 } from "lucide-react";
 import {
   getStoredPatient,
@@ -185,6 +186,7 @@ const publicLinks = [
     icon: LayoutDashboard,
   },
   { to: "/health", key: "health", label: "บันทึกสุขภาพ", icon: Activity },
+  { to: "/progress", key: "progress", label: "ติดตามผลสุขภาพ", icon: TrendingUp },
   { to: "/history", key: "history", label: "ประวัติสุขภาพ", icon: History },
   { to: "/profile", key: "profile", label: "ข้อมูลของฉัน", icon: UserRound },
   { to: "/settings", key: "settings", label: "ตั้งค่าบัญชี", icon: Settings },
@@ -202,12 +204,13 @@ export function PublicLayout({
   subtitle,
   eyebrow,
   guestOnly = false,
+  accountScope,
 }) {
   const [open, setOpen] = useState(false);
   const sidebarRef = useRef(null);
   const location = useLocation();
   const [patient, setPatient] = useState(getStoredPatient);
-  const patientSession = !guestOnly && hasPatientSession();
+  const patientSession = !guestOnly && accountScope !== "admin" && hasPatientSession();
   const staffView = !guestOnly && !patientSession && hasAdminSession();
   const links = guestOnly
     ? [{ to: "/guest", key: "guest", label: "บันทึกสุขภาพ", icon: ClipboardPlus }]
@@ -225,6 +228,7 @@ export function PublicLayout({
           label: "ลงทะเบียนผู้รับบริการ",
           icon: UserRoundPlus,
         },
+        { to: "/admin/progress", key: "progress", label: "ติดตามผลสุขภาพ", icon: TrendingUp },
         ...publicLinks.filter((link) =>
           ["health", "history", "guest"].includes(link.key),
         ),

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +10,7 @@ import {
   X,
   HeartHandshake,
   ArrowUpRight,
+  TrendingUp,
 } from "lucide-react";
 import { adminLogout } from "../../api/api";
 import { Brand } from "../ui";
@@ -108,6 +110,9 @@ export default function AdminSidebar({
               )}
             </button>
           ))}
+          <Link to="/admin/progress" className="admin-nav-item" onClick={onClose}>
+            <TrendingUp size={20} /><span>ติดตามผลสุขภาพ</span>
+          </Link>
         </nav>
         <div className="admin-sidebar-help">
           <HeartHandshake size={27} />

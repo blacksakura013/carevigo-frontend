@@ -1,11 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import App from "../App";
-import { adminLogin, getHealthByType, getPatientProfile, getSessionSnapshot, initializeSessions, loginPatient, saveAdminSession, savePatientSession } from "../api/api";
+import { adminLogin, getHealthByType, getHealthProgress, getPatientProfile, getSessionSnapshot, initializeSessions, loginPatient, saveAdminSession, savePatientSession } from "../api/api";
 import { clearSession } from "../utils/session";
+import { HEALTH_PROGRESS_METRICS } from "../utils/healthProgress";
 
 jest.mock("../api/api", () => ({
   ...jest.requireActual("../api/api"),
-  adminLogin: jest.fn(), getHealthByType: jest.fn(), getPatientProfile: jest.fn(), initializeSessions: jest.fn(), loginPatient: jest.fn(),
+  adminLogin: jest.fn(), getHealthByType: jest.fn(), getHealthProgress: jest.fn(), getPatientProfile: jest.fn(), initializeSessions: jest.fn(), loginPatient: jest.fn(),
 }));
 jest.mock("./AdminDashboard", () => function StaffArea() { return <h1>Staff dashboard</h1>; });
 
@@ -19,6 +20,13 @@ const staffData = () => ({ admin: { role: "admin", email: "route-staff@example.t
   scope: "admin", sessionId: "route-alias-staff", csrfToken: "route-alias-staff-csrf",
   expiresAt: new Date(Date.now() + 600000).toISOString(),
 } });
+const progressData = requestedId => ({ schemaVersion: 1,
+  patient: { citizenId: requestedId, firstName: requestedId === citizenId ? "สมาชิกของฉัน" : "สมาชิกเป้าหมาย", lastName: "ทดสอบ" },
+  range: { from: "2026-10-01", to: "2026-11-01", asOf: "2026-11-01T00:00:00.000Z", timeZone: "Asia/Bangkok" },
+  summary: { total: 0, approved: 0, pending: 0, rejected: 0, unknown: 0, byType: {}, firstRecordedAt: null, lastRecordedAt: null },
+  metrics: Object.fromEntries(Object.keys(HEALTH_PROGRESS_METRICS).map(key => [key, { total: 0, first: null, previous: null, latest: null, series: [], seriesLimit: 100, hasEarlier: false }])),
+  records: [], latestApprovedRecords: [], pagination: { page: 1, limit: 20, total: 0, hasMore: false, reviewStatus: "all" }, currentRisk: null,
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -26,6 +34,7 @@ beforeEach(() => {
   initializeSessions.mockResolvedValue(undefined);
   getPatientProfile.mockResolvedValue({ data: { data: data() } });
   getHealthByType.mockResolvedValue({ data: { data: [], total: 0, hasMore: false } });
+  getHealthProgress.mockImplementation(({ citizenId: requestedId }) => Promise.resolve({ data: { data: progressData(requestedId) } }));
   loginPatient.mockResolvedValue({ data: { data: data() } });
   adminLogin.mockResolvedValue({ data: { data: staffData() } });
 });
@@ -98,5 +107,54 @@ test("expiry on a staff registration alias keeps the staff login warning and per
   expect(window.location.pathname).toBe("/admin/login");
   expect(screen.getByText("เซสชันหมดอายุ กรุณาเข้าสู่ระบบเพื่อใช้งานต่อ")).toBeVisible();
   expect(screen.queryByRole("heading", { name: "สุขภาพที่ดี เริ่มจากรู้จักคุณ" })).not.toBeInTheDocument();
+  expect(getSessionSnapshot("patient").sessionId).toBe("route-alias-patient");
+});
+
+test.each(["/PROGRESS/9999999999999", "/PrOgReSs/9999999999999///"])("personal progress alias %s corrects a foreign ID before any progress read", async route => {
+  savePatientSession(data());
+  window.history.replaceState({}, "", `${route}?days=30#Latest`);
+  render(<App />);
+  await waitFor(() => expect(window.location.pathname).toBe(`/progress/${citizenId}`));
+  expect(window.location.search).toBe("?days=30"); expect(window.location.hash).toBe("#Latest");
+  await screen.findByRole("heading", { name: "สมาชิกของฉัน ทดสอบ" });
+  expect(getHealthProgress).toHaveBeenCalled();
+  getHealthProgress.mock.calls.forEach(([params, options]) => {
+    expect(params.citizenId).toBe(citizenId); expect(options.sessionScope).toBe("patient");
+  });
+});
+
+test("anonymous progress aliases show personal login without reading any health or account data", async () => {
+  window.history.replaceState({}, "", "/PROGRESS/9999999999999///");
+  render(<App />);
+  await screen.findByRole("heading", { name: "เข้าสู่บัญชีสุขภาพของคุณ" });
+  expect(window.location.pathname).toBe("/login"); expect(getHealthProgress).not.toHaveBeenCalled();
+  expect(getPatientProfile).not.toHaveBeenCalled(); expect(getHealthByType).not.toHaveBeenCalled();
+});
+
+test("staff progress uses the selected member and staff workspace with both scopes signed in", async () => {
+  savePatientSession(data()); saveAdminSession(staffData());
+  window.history.replaceState({}, "", "/ADMIN/PROGRESS/9999999999999/");
+  render(<App />);
+  await screen.findByRole("heading", { name: "สมาชิกเป้าหมาย ทดสอบ" });
+  expect(screen.getByRole("heading", { name: "ติดตามผลสุขภาพสมาชิก" })).toBeVisible();
+  expect(screen.getByText("มุมมองเจ้าหน้าที่ · ข้อมูลสมาชิกที่เลือก")).toBeVisible();
+  expect(screen.getByRole("link", { name: "กลับแดชบอร์ดเจ้าหน้าที่" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "บัญชีส่วนตัวของฉัน" })).not.toBeInTheDocument();
+  expect(getPatientProfile).not.toHaveBeenCalled();
+  getHealthProgress.mock.calls.forEach(([params, options]) => {
+    expect(params.citizenId).toBe("9999999999999"); expect(options.sessionScope).toBe("admin");
+  });
+});
+
+test("staff progress expiry hides the member results while the separate personal account remains signed in", async () => {
+  savePatientSession(data()); saveAdminSession(staffData());
+  window.history.replaceState({}, "", "/ADMIN/PROGRESS/9999999999999///");
+  render(<App />);
+  await screen.findByRole("heading", { name: "สมาชิกเป้าหมาย ทดสอบ" });
+  act(() => clearSession("admin", { expired: true }));
+  await screen.findByRole("heading", { name: "เข้าสู่ระบบเจ้าหน้าที่" });
+  expect(window.location.pathname).toBe("/admin/login");
+  expect(screen.queryByRole("heading", { name: "สมาชิกเป้าหมาย ทดสอบ" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "ความเปลี่ยนแปลงสุขภาพ" })).not.toBeInTheDocument();
   expect(getSessionSnapshot("patient").sessionId).toBe("route-alias-patient");
 });

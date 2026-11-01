@@ -984,6 +984,7 @@ export default function AdminDashboard() {
                                   : "ดูรายละเอียด"}
                                 <ChevronRight size={15} />
                               </button>
+                              {/^[0-9]{13}$/.test(user.citizenId || "") && <Link className="admin-text-button" to={`/admin/progress/${user.citizenId}`}>ติดตามผลสุขภาพ<ArrowRight size={15} /></Link>}
                             </td>
                           </tr>
                         ))}
@@ -1165,6 +1166,7 @@ function MemberDrawer({
                     <MemberStatus user={user} />
                     <span>ลงทะเบียน {dateLabel(user.createdAt)}</span>
                   </div>
+                  {/^[0-9]{13}$/.test(user.citizenId || "") && <Link className="btn btn-primary" to={`/admin/progress/${user.citizenId}`} onClick={onClose}>ติดตามผลสุขภาพรายบุคคล<ArrowRight size={18} /></Link>}
                   <section className="admin-member-risk">
                     <div className="admin-detail-section-title">
                       <h3 className="admin-detail-heading">

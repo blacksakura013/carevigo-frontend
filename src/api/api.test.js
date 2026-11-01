@@ -5,7 +5,7 @@ import API, {
   patientLogout, restoreSession, saveAdminSession, savePatientSession,
   storePatientProfile, submitGuestHealth, changePatientPassword, changeAdminPassword, updatePatientProfile,
   requestAdminPasswordReset, validateAdminPasswordReset, resetAdminPassword,
-  searchUser, getGuestProfile, getDashboardHealth,
+  searchUser, getGuestProfile, getDashboardHealth, getHealthProgress,
 } from "./api";
 import { beginSessionLoad, clearSession, installSessionSync, SESSION_EVENT_KEY } from "../utils/session";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
@@ -16,6 +16,49 @@ jest.mock("../utils/apiReadiness", () => ({ createApiReadiness: () => ({
 }) }));
 
 const originalAdapter = API.defaults.adapter;
+
+test.each(["admin", "patient"])("progress reads pin explicit %s scope and its SID when both accounts are authenticated", async scope => {
+  saveAdminSession(session("admin", "progress-staff")); savePatientSession(session("patient", "progress-patient"));
+  const controller = new AbortController();
+  const params = { citizenId: scope === "admin" ? "9999999999999" : "1234567890123", from: "2026-10-01", to: "2026-11-01", reviewStatus: "pending", page: 2, limit: 20 };
+  const isCurrent = () => true;
+  API.defaults.adapter = async config => {
+    expect(config.url).toBe("/public/health/progress"); expect(config.method).toBe("get"); expect(config.params).toEqual(params);
+    expect(config.headers["X-Carevigo-Scope"]).toBe(scope);
+    expect(config.headers["X-Carevigo-Session-Id"]).toBe(scope === "admin" ? "progress-staff" : "progress-patient");
+    expect(config.sessionIndependent).not.toBe(true); expect(config.withCredentials).toBe(true);
+    expect(config.headers.Authorization).toBeUndefined(); expect(config.headers.Cookie).toBeUndefined(); expect(config.headers["X-CSRF-Token"]).toBeUndefined();
+    expect(config.signal).toBe(controller.signal); expect(config.isCurrent).toBe(isCurrent);
+    return ok(config, { marker: "scoped-progress" });
+  };
+  await expect(getHealthProgress(params, { sessionScope: scope, signal: controller.signal, isCurrent })).resolves.toMatchObject({ data: { data: { marker: "scoped-progress" } } });
+});
+
+test.each(["admin", "patient"])("a late progress response from a replaced %s account cannot expose its old measurements", async scope => {
+  saveAdminSession(session("admin", "old-admin")); savePatientSession(session("patient", "old-patient"));
+  const pending = deferredAdapter();
+  const request = getHealthProgress({ citizenId: "1234567890123", days: "90" }, { sessionScope: scope });
+  await pending.ready;
+  save(scope, session(scope, "replacement")); pending.complete({ metrics: { fbs: { latest: { value: 343 } } } });
+  await expect(request).rejects.toMatchObject({ code: "ERR_CANCELED" });
+  expect(getSessionSnapshot(scope).sessionId).toBe("replacement");
+  expect(getSessionSnapshot(scope === "admin" ? "patient" : "admin").sessionId).toBe(scope === "admin" ? "old-patient" : "old-admin");
+});
+
+test.each(["admin", "patient"])("progress 401 expires only the requested %s session", async scope => {
+  saveAdminSession(session("admin", "progress-staff")); savePatientSession(session("patient", "progress-patient"));
+  API.defaults.adapter = config => fail(config, 401);
+  await expect(getHealthProgress({ citizenId: "1234567890123", days: "90" }, { sessionScope: scope })).rejects.toMatchObject({ response: { status: 401 } });
+  expect(getSessionSnapshot(scope).status).toBe("anonymous");
+  expect(getSessionSnapshot(scope === "admin" ? "patient" : "admin").status).toBe("authenticated");
+});
+
+test("an abandoned progress query is canceled before transport dispatch rather than reading a previous member", async () => {
+  saveAdminSession(session("admin", "progress-staff"));
+  const adapter = jest.fn(); API.defaults.adapter = adapter;
+  await expect(getHealthProgress({ citizenId: "9999999999999", days: "90" }, { sessionScope: "admin", isCurrent: () => false })).rejects.toMatchObject({ code: "ERR_CANCELED" });
+  expect(adapter).not.toHaveBeenCalled(); expect(getSessionSnapshot("admin").sessionId).toBe("progress-staff");
+});
 
 test("dashboard sends complete server filters in staff scope and retains the legacy type argument", async () => {
   saveAdminSession(session("admin", "dashboard-staff"));

@@ -99,6 +99,7 @@ const REVIEW_STATES = {
   pending: { label: "รอตรวจสอบ", className: "badge-warning" },
   approved: { label: "ยืนยันแล้ว", className: "badge-success" },
   rejected: { label: "ไม่ผ่านการตรวจสอบ", className: "badge-danger" },
+  unknown: { label: "ไม่ทราบสถานะ", className: "badge-neutral" },
 };
 export function ReviewStatusBadge({ status = "approved" }) {
   const state = REVIEW_STATES[status] || {
@@ -314,6 +315,9 @@ export default function HealthHistory() {
         title="ทุกบันทึก คือความใส่ใจในตัวคุณ"
         description="ดูผลตรวจย้อนหลัง และติดตามสุขภาพของคุณอย่างต่อเนื่อง"
       >
+        <Link className="btn btn-secondary" to={patientMode ? `/progress/${citizenId || ""}` : validId ? `/admin/progress/${citizenId}` : "/admin/progress"}>
+          <Activity size={17} />ติดตามความเปลี่ยนแปลง
+        </Link>
         <Link
           className="btn btn-primary"
           to={validId ? `/health/${citizenId}` : "/health"}

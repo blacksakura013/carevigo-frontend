@@ -30,6 +30,7 @@ import {
 } from "../components/ui";
 import { ThaiCvRiskCard } from "./AddHealth";
 import "../styles/portal.css";
+import "../styles/health-progress-page.css";
 const typeInfo = {
   blood_pressure: { label: "ความดันโลหิต", icon: HeartPulse, color: "coral" },
   sugar: { label: "น้ำตาลในเลือด", icon: Droplets, color: "blue" },
@@ -168,6 +169,10 @@ export default function PatientDashboard() {
           </div>
         </Link>
       </div>
+      <section className="panel portal-progress-entry" aria-label="ติดตามผลสุขภาพของฉัน">
+        <div><h2>สุขภาพเปลี่ยนแปลงอย่างไรบ้าง</h2><p>เปรียบเทียบค่าครั้งก่อนกับครั้งล่าสุด ดูกราฟย้อนหลังและรายการรอตรวจสอบ</p></div>
+        <Link to={`/progress/${citizenId || ""}`} className="btn btn-primary">ติดตามผลสุขภาพ<ArrowRight size={18} /></Link>
+      </section>
       <div className="portal-overview-grid">
         <section className="panel portal-recent">
           <div className="panel-header">

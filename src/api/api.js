@@ -482,6 +482,8 @@ export const provisionPatientAccount = (id, password) =>
 export const loginPatient = (citizenId, password, options) =>
   loginScope("patient", "/auth/patient/login", { citizenId, password }, options);
 export const getPatientProfile = () => API.get("/auth/patient/me");
+export const getHealthProgress = (params, options = {}) =>
+  API.get("/public/health/progress", { ...options, params });
 export const updatePatientProfile = (data) =>
   API.patch("/auth/patient/me", data).then((response) => {
     let result = response;

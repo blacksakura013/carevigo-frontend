@@ -11,6 +11,7 @@ import {
 import CreateUser from "./pages/CreateUser";
 import AddHealth from "./pages/AddHealth";
 import HealthHistory from "./pages/HealthHistory";
+import HealthProgress from "./pages/HealthProgress";
 import Profile from "./pages/Profile";
 import GuestHealth from "./pages/GuestHealth";
 import EmailReview from "./pages/EmailReview";
@@ -251,7 +252,7 @@ function RequirePatient({
   if (record && (!citizenId || citizenId !== profile?.citizenId))
     return (
       <Navigate
-        to={`${pathname.startsWith("/history") ? "/history" : "/health"}/${profile.citizenId}${location.search}${location.hash}`}
+        to={`${pathname.startsWith("/history") ? "/history" : pathname.startsWith("/progress") ? "/progress" : "/health"}/${profile.citizenId}${location.search}${location.hash}`}
         replace
       />
     );
@@ -350,6 +351,12 @@ export default function App() {
             </RequirePatient></SessionBoundary>
           }
         />
+        {["/progress", "/progress/:citizenId"].map(path => <Route key={path} path={path} element={
+          <SessionBoundary scope="patient"><RequirePatient key={patientEpoch} record><HealthProgress /></RequirePatient></SessionBoundary>
+        } />)}
+        {["/admin/progress", "/admin/progress/:citizenId"].map(path => <Route key={path} path={path} element={
+          <SessionBoundary scope="admin"><RequireStaff key={adminEpoch}><HealthProgress staffMode /></RequireStaff></SessionBoundary>
+        } />)}
         <Route
           path="/settings"
           element={
