@@ -21,7 +21,12 @@ export default function BuddhistDateInput({ id, name = "birthDate", value = "", 
   const [yearText, setYearText] = useState(() => String(partsFor(value).year + BE_OFFSET));
   const [position, setPosition] = useState({});
   const wrapper = useRef(null), popup = useRef(null), trigger = useRef(null), pendingFocus = useRef(null);
-  useEffect(() => { setText(readable(value)); }, [value]);
+  const lastEmitted = useRef(null);
+  useEffect(() => {
+    // Keep the user's slash edits/caret; only external values replace raw text.
+    if (lastEmitted.current?.value !== value) setText(readable(value));
+    lastEmitted.current = null;
+  }, [value]);
   useEffect(() => { setYearText(String(view.year + BE_OFFSET)); }, [view.year]);
   const close = (focus = true) => { setOpen(false); if (focus) trigger.current?.focus(); };
   useEffect(() => {
@@ -49,7 +54,10 @@ export default function BuddhistDateInput({ id, name = "birthDate", value = "", 
     const button = popup.current?.querySelector(`[data-date="${wanted}"]:not(:disabled)`);
     if (button) { button.focus(); pendingFocus.current = null; }
   }, [open, view, value]);
-  const emit = next => onChange?.({ target: { name, value: next, type: "text" } });
+  const emit = next => {
+    lastEmitted.current = { value: next };
+    onChange?.({ target: { name, value: next, type: "text" } });
+  };
   const allowed = iso => (!max || iso <= max) && (!min || iso >= min);
   const choose = iso => { emit(iso); setText(gregorianToBuddhistInput(iso)); close(); };
   const moveMonth = delta => {
@@ -80,8 +88,16 @@ export default function BuddhistDateInput({ id, name = "birthDate", value = "", 
         aria-invalid={inputProps["aria-invalid"] || String(value).startsWith(INVALID)}
         placeholder="วว/ดด/ปปปป (พ.ศ.)" maxLength={11} required={required} disabled={disabled} value={text}
         onChange={event => {
-          const next = event.target.value; setText(next);
-          emit(next.trim() ? buddhistInputToGregorian(next) || `${INVALID}${next}` : "");
+          const raw = event.target.value;
+          const next = /^\d{8}$/.test(raw.trim()) ? raw.trim().replace(/^(\d{2})(\d{2})(\d{4})$/, "$1/$2/$3") : raw;
+          const iso = buddhistInputToGregorian(next);
+          setText(next);
+          emit(next.trim() ? (iso && allowed(iso) ? iso : `${INVALID}${next}`) : "");
+        }}
+        onBlur={event => {
+          const iso = buddhistInputToGregorian(event.target.value);
+          if (iso && allowed(iso)) setText(gregorianToBuddhistInput(iso));
+          inputProps.onBlur?.(event);
         }} />
       <button ref={trigger} type="button" className="buddhist-date-trigger" disabled={disabled} aria-label={`เปิดปฏิทิน${label} พ.ศ.`}
         aria-haspopup="dialog" aria-expanded={open} aria-controls={`${id}-calendar`} onClick={() => {

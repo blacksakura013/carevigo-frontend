@@ -17,6 +17,14 @@ test("date parsing rejects impossible leap days and mixed or rolled date formats
     expect(gregorianDate(text)).toBe("");
 });
 
+test("compact day-month-Buddhist-year input converts strictly to Gregorian without rolling invalid days", () => {
+  expect(buddhistInputToGregorian("06122541")).toBe("1998-12-06");
+  expect(buddhistInputToGregorian(" 06122541 ")).toBe("1998-12-06");
+  expect(buddhistInputToGregorian("29022543")).toBe("2000-02-29");
+  for (const value of ["29022542", "31042569", "00122541", "06132541", "0612254", "061225411", "06122541x", "1998-12-06"])
+    expect(buddhistInputToGregorian(value)).toBe("");
+});
+
 test("visible dates use Buddhist years and Bangkok day/year boundaries for compact and ISO dates", () => {
   expect(formatThaiDate("19800101", { month: "long" })).toBe("1 มกราคม 2523");
   expect(formatThaiDate("2026-12-31T17:30:00Z", { month: "long" })).toBe("1 มกราคม 2570");

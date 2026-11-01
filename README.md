@@ -196,9 +196,12 @@ review decisions and email confirmation against actual persisted documents.
 ## Thai dates and accessible responsive forms
 
 All visible dates use Buddhist Era years and the Asia/Bangkok timezone. Birthday
-text fields accept `DD/MM/BE` and include a Thai month/day calendar with a Buddhist
+text fields accept `DD/MM/BE` or eight digits `DDMMBE` and include a Thai month/day calendar with a Buddhist
 year control, keyboard navigation and touch targets. For example, `01/01/2523`
 becomes `1980-01-01` in form state and the existing `19800101` API/database format.
+Typing `06122541` displays `06/12/2541` and stores Gregorian `19981206`.
+Slash edits and partial input remain editable; valid slash dates format on blur.
+Manual dates obey the same minimum/maximum bounds as the calendar.
 Notice versions and timestamps retain their machine-readable Gregorian formats.
 Impossible dates are rejected instead of being rolled into another month.
 

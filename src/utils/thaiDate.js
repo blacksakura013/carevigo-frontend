@@ -24,7 +24,8 @@ export function todayGregorian(now = new Date()) {
 }
 export function currentBuddhistYear(now = new Date()) { return Number(todayGregorian(now).slice(0, 4)) + BE_OFFSET; }
 export function buddhistInputToGregorian(value) {
-  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4,5})$/.exec(String(value || "").trim());
+  const text = String(value || "").trim();
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4,5})$/.exec(text) || /^(\d{2})(\d{2})(\d{4})$/.exec(text);
   if (!match) return "";
   const day = Number(match[1]), month = Number(match[2]), year = Number(match[3]) - BE_OFFSET;
   return validDateParts(year, month, day) ? isoDate(year, month, day) : "";

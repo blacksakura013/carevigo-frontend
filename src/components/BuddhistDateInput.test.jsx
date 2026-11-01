@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import BuddhistDateInput from "./BuddhistDateInput";
 
-function Harness({ initial = "2020-02-29", max = "2026-11-01" }) {
+function Harness({ initial = "2020-02-29", max = "2026-11-01", min }) {
   const [value, setValue] = useState(initial);
-  return <><label htmlFor="birthday">วันเกิด</label><BuddhistDateInput id="birthday" value={value} max={max} onChange={event => setValue(event.target.value)} />
+  return <><label htmlFor="birthday">วันเกิด</label><BuddhistDateInput id="birthday" value={value} min={min} max={max} onChange={event => setValue(event.target.value)} />
     <output data-testid="stored-date">{value}</output></>;
 }
 
@@ -18,6 +18,43 @@ test("the visible textbox accepts a Buddhist date and keeps its controlled value
   fireEvent.change(input, { target: { value: "29/02/2562" } });
   expect(input).toHaveValue("29/02/2562"); expect(input).toHaveAttribute("aria-invalid", "true");
   expect(screen.getByTestId("stored-date")).toHaveTextContent("!BE:29/02/2562");
+});
+
+test.each(["", "1998-12-06"])("compact typing formats and emits Gregorian even when parent ISO was already %s", initial => {
+  render(<Harness initial={initial} />);
+  const input = screen.getByRole("textbox", { name: "วันเกิด" });
+  fireEvent.change(input, { target: { value: "06122541" } });
+  expect(input).toHaveValue("06/12/2541");
+  expect(input).toHaveAttribute("aria-invalid", "false");
+  expect(screen.getByTestId("stored-date")).toHaveTextContent("1998-12-06");
+});
+
+test("deleting a leading digit in a slash date stays editable until blur, and clearing remains empty", () => {
+  render(<Harness initial="1998-12-06" />);
+  const input = screen.getByRole("textbox", { name: "วันเกิด" });
+  fireEvent.change(input, { target: { value: "6/12/2541", selectionStart: 0, selectionEnd: 0 } });
+  expect(input).toHaveValue("6/12/2541");
+  expect(input.selectionStart).toBe(0);
+  expect(screen.getByTestId("stored-date")).toHaveTextContent("1998-12-06");
+  fireEvent.blur(input);
+  expect(input).toHaveValue("06/12/2541");
+  fireEvent.change(input, { target: { value: "" } });
+  expect(input).toHaveValue(""); expect(screen.getByTestId("stored-date")).toBeEmptyDOMElement();
+});
+
+test("partial edits stay raw and compact invalid dates or out-of-range birthdays never become a valid stored date", () => {
+  render(<Harness initial="" min="1990-01-01" />);
+  const input = screen.getByRole("textbox", { name: "วันเกิด" });
+  fireEvent.change(input, { target: { value: "0612254" } });
+  expect(input).toHaveValue("0612254");
+  for (const value of ["29022542", "02112569", "01012490"]) {
+    fireEvent.change(input, { target: { value } });
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByTestId("stored-date")).toHaveTextContent(/^!BE:/);
+  }
+  fireEvent.change(input, { target: { value: "29022543" } });
+  expect(input).toHaveValue("29/02/2543");
+  expect(screen.getByTestId("stored-date")).toHaveTextContent("2000-02-29");
 });
 
 test("the Thai calendar shows a Buddhist year and returns a Gregorian leap day", () => {
