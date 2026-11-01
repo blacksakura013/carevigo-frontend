@@ -116,7 +116,7 @@ catches up on wake and cannot run at 23:59 while its host is suspended.
 
 ## Workflows
 
-- `/guest`: submit recipient details without logging in, with any number of health measurement categories, including none. Acceptance clears the editable fields and shows a read-only summary of this submission: masked citizen ID, entered details/results, submission time, pending status and Thai review deadline. The summary stays only in current-page memory; a new entry, full reload or navigating away inside the app clears it. This page does not fetch receipts, history, profiles, or CV results, and has no account navigation. Unchanged failed retries reuse the same request ID.
+- `/guest`: submit recipient details without logging in, with any number of health measurement categories, including none. After 13 citizen-ID digits and a 350ms pause, the public personal-profile endpoint fills the official verified recipient's first name, last name, gender, birth date and phone. Unknown profiles and lookup errors permit manual entry. Late responses cannot overwrite manually edited fields or another recipient; changing the ID clears the previous recipient's draft and agreements. Previous clinical measurements and history are never filled. Acceptance clears the editable fields and shows a read-only summary and assessment of this submission, including a masked citizen ID, entered details/results, submission time, pending status and Thai review deadline. The summary stays only in current-page memory; a new entry, full reload or navigating away inside the app clears it. This page does not fetch receipts, private history or past CV results, and has no account navigation. Unchanged failed retries reuse the same request ID.
 - `/login`: personal login with citizen ID and password. Staff issue a random or manually entered six-digit initial code. The first login requires changing it. Patients can choose a six-digit code or a password of at least eight characters.
 - `/`: staff go to `/admin`, signed-in patients go to their personal dashboard, and anonymous visitors go to `/guest`. If both roles are signed in, staff take priority on this neutral entry route. Explicit patient pages and guest entry remain accessible under their normal permissions.
 - `/health`, `/history`, `/profile`, `/settings`: a patient's own records, editable profile, and password settings. Individual record URLs are checked against the signed-in account. Private reads are also authorized by the backend.
@@ -225,6 +225,13 @@ API origins remain configurable. The frontend requires the updated backend's
 cookie-session authentication contract described above.
 
 ## Motion and navigation
+
+Session bootstrap and patient-account verification use a branded full-page loader
+with the existing shield mark, gentle orbit and pulse-line animation. Its single
+polite status has no invented percentage or extra minimum wait. A guest-entry link
+remains available. Public forms stay editable with compact readiness feedback;
+that feedback is suppressed while a full loader is mounted. Reduced motion keeps
+the same information with a static mark and pulse line.
 
 Short 140–280ms entrances and control feedback help show navigation, opened
 dialogs and completed saves. Headings replay a subtle fade when the admin view

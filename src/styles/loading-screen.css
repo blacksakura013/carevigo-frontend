@@ -1,0 +1,113 @@
+.loading-screen {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 24px;
+  padding: 40px 20px;
+  background: radial-gradient(ellipse at 12% 12%, #e2f3ed 0, transparent 52%),
+    radial-gradient(ellipse at 90% 90%, #e5f4f1 0, transparent 50%), #f7faf8;
+  color: #173e38;
+}
+.loading-screen-card {
+  width: min(100%, 600px);
+  min-width: 0;
+  padding: 36px 40px;
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+  text-align: center;
+  border: 1px solid #d6e9e1;
+  border-radius: 32px;
+  background: #ffffffed;
+  box-shadow: 0 16px 64px #1653450b;
+  animation: loading-card-enter 420ms ease-out both;
+}
+.loading-screen-brand { font-size: 1.625rem; font-weight: 750; line-height: 1.35; }
+.loading-screen-brand > span { color: #087e72; }
+.loading-visual {
+  width: 164px;
+  height: 164px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.loading-visual-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #e9f6ef;
+  animation: loading-halo-breathe 3.2s ease-in-out infinite;
+}
+.loading-visual-orbit {
+  position: absolute;
+  inset: 8px;
+  border: 2px solid #c6e6dc;
+  border-top-color: #087e72;
+  border-right-color: #087e72;
+  border-radius: 50%;
+  animation: loading-orbit-turn 3s linear infinite;
+}
+.loading-visual-core {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  border: 1px solid #d1e9df;
+  background: #ffffff;
+  border-radius: 36px;
+  box-shadow: 0 6px 20px #1653450c;
+}
+.loading-visual-core img { display: block; width: 80px; height: 80px; }
+.loading-screen-status { min-width: 0; }
+:root body .loading-screen-title {
+  font-size: clamp(1.5rem, 3vw, 1.875rem);
+  line-height: 1.6;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.loading-screen-status p { margin-top: 8px; font-size: 1.125rem; line-height: 1.8; color: #49675f; }
+.loading-screen-pulse { width: min(200px, 100%); height: 40px; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.loading-pulse-base { stroke: #d8ebe3; }
+.loading-pulse-trace { stroke: #087e72; stroke-dasharray: 260; stroke-dashoffset: 260; animation: loading-pulse-draw 2.8s ease-in-out infinite; }
+.loading-screen-hint { max-width: 34ch; font-size: 1.125rem; line-height: 1.8; color: #49675f; }
+.loading-screen-guest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.7;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: #066e62;
+}
+.loading-screen-guest svg { flex: 0 0 18px; }
+.loading-screen-guest:hover { background: #eff8f3; }
+.loading-screen-tagline { color: #49675f; font-size: 1.0625rem; text-align: center; }
+.loading-visual-compact { width: 60px; height: 60px; }
+.loading-visual-compact .loading-visual-orbit { inset: 2px; }
+.loading-visual-compact .loading-visual-core { width: 44px; height: 44px; border-radius: 14px; }
+.loading-visual-compact .loading-visual-core img { width: 36px; height: 36px; }
+
+@keyframes loading-orbit-turn { to { transform: rotate(360deg); } }
+@keyframes loading-halo-breathe { 0%, 100% { transform: scale(.95); opacity: .65; } 50% { transform: scale(1.04); opacity: 1; } }
+@keyframes loading-pulse-draw { 0% { stroke-dashoffset: 260; } 70%, 100% { stroke-dashoffset: 0; } }
+@keyframes loading-card-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 480px) {
+  .loading-screen { padding: 24px 16px; gap: 20px; }
+  .loading-screen-card { padding: 28px 20px; gap: 20px; border-radius: 24px; }
+  .loading-visual:not(.loading-visual-compact) { width: 144px; height: 144px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-screen-card, .loading-visual-halo, .loading-visual-orbit, .loading-pulse-trace { animation: none; transform: none; }
+  .loading-pulse-trace { stroke-dashoffset: 0; }
+}

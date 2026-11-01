@@ -502,6 +502,8 @@ export const changePatientPassword = (currentPassword, password) =>
     .then((response) => verifyLogin("patient", response)));
 export const submitGuestHealth = (data, options = {}) =>
   API.post("/public/submissions", data, options);
+export const getGuestProfile = (citizenId, options = {}) =>
+  API.get("/public/patient-profile", { ...options, params: { citizenId }, sessionIndependent: true, withCredentials: false });
 export const getGuestReceipt = (id, token) =>
   API.get(`/public/submissions/${encodeURIComponent(id)}`, {
     params: { token },

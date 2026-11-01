@@ -10,7 +10,7 @@ jest.mock("../api/api", () => ({
   ...jest.requireActual("../api/api"),
   addHealth: jest.fn(), getPatientProfile: jest.fn(), getStoredPatient: jest.fn(),
   hasPatientSession: jest.fn(), hasAdminSession: jest.fn(() => false),
-  searchUser: jest.fn(), submitGuestHealth: jest.fn(),
+  searchUser: jest.fn(), submitGuestHealth: jest.fn(), getGuestProfile: jest.fn(() => Promise.resolve({ data: { data: null } })),
 }));
 
 const person = { citizenId: "1234567890123", firstName: "สมใจ", lastName: "ทดสอบ", thaiCvRisk: { status: "incomplete" } };
@@ -130,11 +130,14 @@ test("guest review reflects all entered clinical values and confirmed conditions
   }));
 });
 
-test("changing a guest citizen ID after going back requires fresh consent without fetching old health data", () => {
+test("changing a guest citizen ID clears the previous person and measurements and requires fresh consent", () => {
   guest(); fillPersonal(); nextTimes(2); fillPressure(); nextTimes(4); accept();
   backTimes(6);
   fill(/^เลขบัตรประชาชน/, "9999999999999");
-  expect(field(/^ชื่อ/)).toHaveValue(person.firstName);
+  expect(field(/^ชื่อ/)).toHaveValue("");
+  expect(field(/^ความดันตัวบน/)).toHaveValue(null);
+  fill(/^ชื่อ/, "ผู้รับบริการใหม่");
+  fill(/^นามสกุล/, "ทดสอบ");
   nextTimes(6);
   expect(screen.getByRole("checkbox", { name: /ฉันยอมรับ/ })).not.toBeChecked();
   expect(screen.getByRole("checkbox", { name: /ฉันยินยอมอย่างชัดแจ้ง/ })).not.toBeChecked();

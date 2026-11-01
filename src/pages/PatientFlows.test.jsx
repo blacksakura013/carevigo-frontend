@@ -17,6 +17,7 @@ import {
   addHealth,
   createUser,
   getGuestReceipt,
+  getGuestProfile,
   getHealthByType,
   getPatientProfile,
   getStoredPatient,
@@ -47,6 +48,7 @@ jest.mock("../api/api", () => ({
   addHealth: jest.fn(),
   createUser: jest.fn(),
   getGuestReceipt: jest.fn(),
+  getGuestProfile: jest.fn(),
   getHealthByType: jest.fn(),
   searchUser: jest.fn(),
   submitGuestHealth: jest.fn(),
@@ -97,6 +99,7 @@ beforeEach(() => {
   mockParams = {};
   mockLocation = { pathname: "/guest", search: "", hash: "" };
   hasPatientSession.mockReturnValue(false);
+  getGuestProfile.mockResolvedValue({ data: { data: null } });
   Object.defineProperty(window, "crypto", {
     value: require("crypto").webcrypto,
     configurable: true,

@@ -41,6 +41,8 @@ import {
 } from "./api/api";
 import { getLandingDestination, normalizePathname } from "./utils/navigation";
 import ServerReadinessNotice from "./components/ServerReadinessNotice";
+import LoadingScreen from "./components/LoadingScreen";
+import { LoadingScreenProvider } from "./components/LoadingScreenContext";
 
 const PUBLIC_ADMIN_AUTH_PATHS = new Set(["/admin/login", "/admin/forgot-password", "/admin/reset-password"]);
 const isPublicAdminAuthPath = pathname => PUBLIC_ADMIN_AUTH_PATHS.has(normalizePathname(pathname));
@@ -49,7 +51,7 @@ function SessionBoundary({ scope, children }) {
   const scopes = Array.isArray(scope) ? scope : [scope];
   const sessions = scopes.map(getSessionSnapshot);
   if (sessions.some((session) => ["unknown", "loading"].includes(session.status)))
-    return <PublicLayout><div className="panel empty-state" role="status">กำลังตรวจสอบการเข้าสู่ระบบ…</div></PublicLayout>;
+    return <LoadingScreen />;
   const failed = sessions.filter((session) => session.status === "error");
   if (failed.length)
     return <PublicLayout><Notice tone="error">{failed.some(session => session.error?.code === "API_NOT_READY")
@@ -230,15 +232,7 @@ function RequirePatient({
       />
     );
   if (verification.sessionId !== sessionId)
-    return (
-      <PublicLayout active="dashboard">
-        <div className="panel">
-          <div className="empty-state" role="status">
-            กำลังตรวจสอบบัญชีของคุณ…
-          </div>
-        </div>
-      </PublicLayout>
-    );
+    return <LoadingScreen title="กำลังตรวจสอบบัญชีของคุณ…" description="กำลังเตรียมข้อมูลสุขภาพส่วนตัวของคุณ" />;
   if (verification.error)
     return (
       <PublicLayout active="dashboard">
@@ -289,7 +283,7 @@ export default function App() {
   const patientEpoch = getSessionSnapshot("patient").version;
   const adminEpoch = getSessionSnapshot("admin").version;
   return (
-    <BrowserRouter>
+    <LoadingScreenProvider><BrowserRouter>
       <NavigationEffects />
       <ServerReadinessNotice />
       <LogoutNotice />
@@ -382,6 +376,6 @@ export default function App() {
         <Route path="/coming-soon" element={<Navigate to="/help" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
+    </BrowserRouter></LoadingScreenProvider>
   );
 }

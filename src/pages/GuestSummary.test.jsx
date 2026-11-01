@@ -5,7 +5,7 @@ import GuestHealth from "./GuestHealth";
 import { getGuestReceipt, getHealthByType, getPatientProfile, searchUser, submitGuestHealth } from "../api/api";
 
 jest.mock("../api/api", () => ({ ...jest.requireActual("../api/api"),
-  submitGuestHealth: jest.fn(), getGuestReceipt: jest.fn(), getHealthByType: jest.fn(), getPatientProfile: jest.fn(), searchUser: jest.fn(),
+  submitGuestHealth: jest.fn(), getGuestProfile: jest.fn(() => Promise.resolve({ data: { data: null } })), getGuestReceipt: jest.fn(), getHealthByType: jest.fn(), getPatientProfile: jest.fn(), searchUser: jest.fn(),
 }));
 const citizenId = "8900000000701";
 const mount = () => render(<MemoryRouter initialEntries={["/guest"]}><GuestHealth /></MemoryRouter>);

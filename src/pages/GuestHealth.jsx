@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { getApiError, submitGuestHealth } from "../api/api";
+import { getApiError, getGuestProfile, submitGuestHealth } from "../api/api";
 import {
   Button,
   Field,
@@ -53,6 +53,18 @@ const EMPTY_PROFILE = {
   chronicDiseasesConfirmed: false,
   cancerDetails: "",
 };
+function personalFields(value) {
+  const fields = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return fields;
+  for (const name of ["firstName", "lastName", "phone"])
+    if (typeof value[name] === "string") fields[name] = value[name].trim().slice(0, 100);
+  const gender = typeof value.gender === "string" ? value.gender.trim() : "";
+  if (["male", "ชาย"].includes(gender)) fields.gender = "male";
+  if (["female", "หญิง"].includes(gender)) fields.gender = "female";
+  const birthDate = gregorianDate(value.birthDate);
+  if (birthDate && birthDate <= todayGregorian()) fields.birthDate = birthDate;
+  return fields;
+}
 const GUEST_FORM_STEPS = [
   { id: "personal", title: "ข้อมูลผู้รับบริการ", description: "กรอกข้อมูลของผู้ที่ต้องการบันทึกสุขภาพครั้งนี้" },
   { id: "conditions", title: "พฤติกรรมและโรคประจำตัว", description: "กรอกข้อมูลที่ทราบ เลือกโรคได้มากกว่า 1 ข้อ" },
@@ -157,11 +169,15 @@ export default function GuestHealth() {
   const [saving, setSaving] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
   const [focusNewEntry, setFocusNewEntry] = useState(false);
+  const [profileLookup, setProfileLookup] = useState("");
   const requestKey = useRef({ fingerprint: "", id: "" });
   const pendingRef = useRef(false);
   const activeRef = useRef(true);
   const resultRef = useRef(null);
   const pagesRef = useRef(null);
+  const lookupVersion = useRef(0);
+  const lookupController = useRef(null);
+  const editedFields = useRef(new Set());
 
   useEffect(() => {
     document.title = "บันทึกสุขภาพโดยไม่เข้าสู่ระบบ | Save Stroke";
@@ -190,9 +206,63 @@ export default function GuestHealth() {
   useEffect(() => {
     if (location.search || location.hash) navigate("/guest", { replace: true });
   }, [location.search, location.hash, navigate]);
+  useEffect(() => {
+    if (confirmation || !/^\d{13}$/.test(citizenId)) return;
+    const version = ++lookupVersion.current;
+    const controller = new AbortController();
+    lookupController.current = controller;
+    const current = () => activeRef.current && version === lookupVersion.current && !controller.signal.aborted;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await getGuestProfile(citizenId, { signal: controller.signal, isCurrent: current });
+        if (!current()) return;
+        const person = response.data?.data;
+        const fields = personalFields(person);
+        setProfile(previous => {
+          if (!current()) return previous;
+          const next = { ...previous };
+          for (const [name, value] of Object.entries(fields))
+            if (!editedFields.current.has(name)) next[name] = value;
+          return next;
+        });
+        setProfileLookup(person && typeof person === "object" && !Array.isArray(person) ? "found" : "empty");
+      } catch {
+        if (current()) setProfileLookup("error");
+      }
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+      if (lookupController.current === controller) lookupController.current = null;
+      if (lookupVersion.current === version) lookupVersion.current += 1;
+    };
+  }, [citizenId, confirmation]);
+
+  const cancelProfileLookup = () => {
+    lookupVersion.current += 1;
+    lookupController.current?.abort();
+    lookupController.current = null;
+  };
+  const changeCitizenId = (event) => {
+    const nextId = event.target.value.replace(/\D/g, "").slice(0, 13);
+    if (nextId === citizenId) return;
+    cancelProfileLookup();
+    editedFields.current = new Set();
+    setCitizenId(nextId);
+    setProfile({ ...EMPTY_PROFILE });
+    setOtherDiseases("");
+    setValues(emptyHealthValues());
+    setAgreements({});
+    setAgreementError("");
+    setErrors({});
+    setError("");
+    setProfileLookup(/^\d{13}$/.test(nextId) ? "loading" : "");
+    requestKey.current = { fingerprint: "", id: "" };
+  };
 
   const updateProfile = (event) => {
     const { name, value } = event.target;
+    editedFields.current.add(name);
     setProfile((previous) => ({ ...previous, [name]: value }));
     setErrors((previous) => ({ ...previous, [name]: "" }));
     setError("");
@@ -253,6 +323,8 @@ export default function GuestHealth() {
       pagesRef.current?.focusField("guest-agreement-terms");
       return;
     }
+    cancelProfileLookup();
+    setProfileLookup("");
     const profileData = {
       ...profile,
       firstName: profile.firstName.trim(),
@@ -351,6 +423,9 @@ export default function GuestHealth() {
     </Field>
   );
   const startNew = () => {
+    cancelProfileLookup();
+    editedFields.current = new Set();
+    setProfileLookup("");
     setCitizenId("");
     setProfile({ ...EMPTY_PROFILE });
     setOtherDiseases("");
@@ -418,7 +493,7 @@ export default function GuestHealth() {
                       id="guest-citizenId"
                       required
                       error={errors.citizenId}
-                      hint="ใช้เชื่อมรายการกับผู้รับบริการ โดยไม่เปิดเผยข้อมูลเดิม"
+                      hint="กรอกครบ 13 หลัก ระบบจะค้นหาข้อมูลส่วนตัวให้ หากไม่พบสามารถกรอกเองได้"
                     >
                       <input
                         id="guest-citizenId"
@@ -429,20 +504,12 @@ export default function GuestHealth() {
                         required
                         pattern="[0-9]{13}"
                         value={citizenId}
-                        onChange={(event) => {
-                          const nextId = event.target.value.replace(/\D/g, "").slice(0, 13);
-                          if (nextId !== citizenId) {
-                            setAgreements({});
-                            setAgreementError("");
-                          }
-                          setCitizenId(nextId);
-                          setErrors((previous) => ({
-                            ...previous,
-                            citizenId: "",
-                          }));
-                        }}
+                        onChange={changeCitizenId}
                         placeholder="เลขบัตรประชาชน 13 หลัก"
                       />
+                      {profileLookup && <p className="field-hint" role="status" aria-live="polite" aria-atomic="true">
+                        {{ loading: "กำลังค้นหาข้อมูลส่วนตัว คุณสามารถกรอกข้อมูลต่อได้", found: "พบข้อมูลส่วนตัวแล้ว กรุณาตรวจสอบก่อนส่ง ช่องที่คุณแก้ไขจะคงค่าที่กรอกไว้", empty: "ไม่พบข้อมูลเดิม กรุณากรอกข้อมูลผู้รับบริการครั้งนี้", error: "ค้นหาข้อมูลส่วนตัวไม่สำเร็จ คุณสามารถกรอกข้อมูลเองและส่งได้" }[profileLookup]}
+                      </p>}
                     </Field>
                     {input("phone", "เบอร์โทรศัพท์ (ถ้ามี)", {
                       type: "tel",

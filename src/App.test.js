@@ -4,6 +4,7 @@ import {
   clearAdminSession,
   clearPatientSession,
   initializeSessions,
+  getGuestProfile,
   restoreSession,
   saveAdminSession,
   requestAdminPasswordReset,
@@ -17,6 +18,7 @@ import { apiNotReady } from "./utils/apiReadiness";
 jest.mock("./api/api", () => ({
   ...jest.requireActual("./api/api"),
   initializeSessions: jest.fn(),
+  getGuestProfile: jest.fn(),
   restoreSession: jest.fn(),
   requestAdminPasswordReset: jest.fn(),
   validateAdminPasswordReset: jest.fn(),
@@ -38,6 +40,7 @@ beforeEach(() => {
   clearSession("patient", { endedBy: null });
   clearSession("admin", { endedBy: null });
   initializeSessions.mockResolvedValue(undefined);
+  getGuestProfile.mockResolvedValue({ data: { data: null } });
   requestAdminPasswordReset.mockResolvedValue({ status: 202 });
   validateAdminPasswordReset.mockResolvedValue({ data: { data: { valid: true } } });
   resetAdminPassword.mockResolvedValue({ status: 200 });

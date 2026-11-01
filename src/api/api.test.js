@@ -5,7 +5,7 @@ import API, {
   patientLogout, restoreSession, saveAdminSession, savePatientSession,
   storePatientProfile, submitGuestHealth, changePatientPassword, changeAdminPassword, updatePatientProfile,
   requestAdminPasswordReset, validateAdminPasswordReset, resetAdminPassword,
-  searchUser,
+  searchUser, getGuestProfile,
 } from "./api";
 import { beginSessionLoad, clearSession, installSessionSync, SESSION_EVENT_KEY } from "../utils/session";
 import { hasLogoutIntent, setLogoutIntent } from "../utils/storage";
@@ -16,6 +16,24 @@ jest.mock("../utils/apiReadiness", () => ({ createApiReadiness: () => ({
 }) }));
 
 const originalAdapter = API.defaults.adapter;
+
+test("public guest personal lookup omits account identity and cookies even with both signed-in accounts", async () => {
+  saveAdminSession(session("admin", "staff-private")); savePatientSession(session("patient", "patient-private"));
+  const controller = new AbortController();
+  API.defaults.adapter = async config => {
+    expect(config.url).toBe("/public/patient-profile");
+    expect(config.params).toEqual({ citizenId: "9999999999999" });
+    expect(config.sessionIndependent).toBe(true); expect(config.withCredentials).toBe(false);
+    expect(config.signal).toBe(controller.signal);
+    expect(config.headers["X-Carevigo-Session-Id"]).toBeUndefined();
+    expect(config.headers["X-CSRF-Token"]).toBeUndefined(); expect(config.headers.Authorization).toBeUndefined();
+    return ok(config, null);
+  };
+  const response = await getGuestProfile("9999999999999", { signal: controller.signal, isCurrent: () => true });
+  expect(response.data.data).toBeNull();
+  expect(getSessionSnapshot("admin").sessionId).toBe("staff-private");
+  expect(getSessionSnapshot("patient").sessionId).toBe("patient-private");
+});
 
 test.each(["admin", "patient"])("a deployed backend missing the %s session route is reported as unavailable service", async scope => {
   API.defaults.adapter = config => fail(config, 404, { message: "Route not found" });

@@ -17,6 +17,7 @@ import {
   getStoredAdmin,
   getStoredPatient,
   initializeSessions,
+  getGuestProfile,
   loginPatient,
   patientLogout,
   restoreSession,
@@ -35,6 +36,7 @@ jest.mock("../api/api", () => ({
   changePatientPassword: jest.fn(),
   getHealthByType: jest.fn(),
   initializeSessions: jest.fn(),
+  getGuestProfile: jest.fn(),
   restoreSession: jest.fn(),
   patientLogout: jest.fn(),
   retryLogout: jest.fn(),
@@ -72,6 +74,7 @@ beforeEach(() => {
   clearSession("patient", { endedBy: null });
   clearSession("admin", { endedBy: null });
   initializeSessions.mockResolvedValue(undefined);
+  getGuestProfile.mockResolvedValue({ data: { data: null } });
   restoreSession.mockImplementation(async (scope) => {
     if (scope === "patient") clearPatientSession(); else clearAdminSession();
   });
