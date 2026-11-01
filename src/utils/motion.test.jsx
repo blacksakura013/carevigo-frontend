@@ -9,7 +9,8 @@ function Page({ title }) {
 
 const originalAnimate = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "animate");
 const originalMatchMedia = window.matchMedia;
-let animate, media, listeners;
+const originalVisibility = Object.getOwnPropertyDescriptor(document, "visibilityState");
+let animate, media, listeners, visibility;
 
 beforeEach(() => {
   listeners = new Set();
@@ -19,7 +20,19 @@ beforeEach(() => {
     removeEventListener: jest.fn((name, listener) => listeners.delete(listener)),
   };
   window.matchMedia = jest.fn(() => media);
-  animate = jest.fn(() => ({ cancel: jest.fn() }));
+  visibility = "visible";
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => visibility });
+  animate = jest.fn(() => {
+    const events = new Map();
+    return {
+      cancel: jest.fn(),
+      addEventListener: jest.fn((name, callback) => events.set(name, callback)),
+      removeEventListener: jest.fn((name, callback) => {
+        if (events.get(name) === callback) events.delete(name);
+      }),
+      finish: () => events.get("finish")?.(),
+    };
+  });
   Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
 });
 
@@ -27,12 +40,21 @@ afterEach(() => {
   if (originalAnimate) Object.defineProperty(HTMLElement.prototype, "animate", originalAnimate);
   else delete HTMLElement.prototype.animate;
   window.matchMedia = originalMatchMedia;
+  if (originalVisibility) Object.defineProperty(document, "visibilityState", originalVisibility);
+  else delete document.visibilityState;
 });
 
 function preferReduced(matches) {
   act(() => {
     media.matches = matches;
     [...listeners].forEach(listener => listener({ matches }));
+  });
+}
+
+function setVisibility(value) {
+  act(() => {
+    visibility = value;
+    document.dispatchEvent(new Event("visibilitychange"));
   });
 }
 
@@ -137,4 +159,96 @@ test("browsers without matchMedia can update and clean up the heading", () => {
   const animation = animate.mock.results[0].value;
   view.unmount();
   expect(animation.cancel).toHaveBeenCalledTimes(1);
+});
+
+test("a native animation failure leaves the updated page, draft and focus usable", () => {
+  const view = render(<Page title="ภาพรวม" />);
+  const heading = screen.getByRole("heading");
+  const input = screen.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "ข้อมูลร่าง" } });
+  input.focus();
+  animate.mockImplementationOnce(() => { throw new DOMException("Document is inactive", "InvalidStateError"); });
+
+  expect(() => view.rerender(<Page title="ตั้งค่า" />)).not.toThrow();
+  expect(screen.getByRole("heading")).toBe(heading);
+  expect(heading).toHaveTextContent("ตั้งค่า");
+  expect(screen.getByRole("textbox")).toBe(input);
+  expect(input).toHaveValue("ข้อมูลร่าง");
+  expect(input).toHaveFocus();
+  view.rerender(<Page title="สมาชิก" />);
+  expect(animate).toHaveBeenCalledTimes(2);
+  const recovered = animate.mock.results[1].value;
+  view.unmount();
+  expect(recovered.cancel).toHaveBeenCalledTimes(1);
+});
+
+test("hidden tabs skip replay, cancel running motion and do not replay on return", () => {
+  setVisibility("hidden");
+  const view = render(<Page title="ภาพรวม" />);
+  view.rerender(<Page title="สมาชิก" />);
+  expect(animate).not.toHaveBeenCalled();
+  setVisibility("visible");
+  expect(animate).not.toHaveBeenCalled();
+  view.rerender(<Page title="ตั้งค่า" />);
+  const first = animate.mock.results[0].value;
+  setVisibility("hidden");
+  expect(first.cancel).toHaveBeenCalledTimes(1);
+  view.rerender(<Page title="ผลสุขภาพ" />);
+  expect(animate).toHaveBeenCalledTimes(1);
+  setVisibility("visible");
+  expect(animate).toHaveBeenCalledTimes(1);
+  view.rerender(<Page title="ภาพรวม" />);
+  const second = animate.mock.results[1].value;
+  view.unmount();
+  expect(first.cancel).toHaveBeenCalledTimes(1);
+  expect(second.cancel).toHaveBeenCalledTimes(1);
+});
+
+test("finished animations release their listener and are not cancelled again", () => {
+  const view = render(<Page title="ภาพรวม" />);
+  view.rerender(<Page title="สมาชิก" />);
+  const first = animate.mock.results[0].value;
+  act(() => first.finish());
+  expect(first.removeEventListener).toHaveBeenCalledWith("finish", expect.any(Function));
+  preferReduced(true);
+  setVisibility("hidden");
+  expect(first.cancel).not.toHaveBeenCalled();
+  setVisibility("visible");
+  preferReduced(false);
+  view.rerender(<Page title="ตั้งค่า" />);
+  const second = animate.mock.results[1].value;
+  view.unmount();
+  expect(first.cancel).not.toHaveBeenCalled();
+  expect(second.cancel).toHaveBeenCalledTimes(1);
+});
+
+test("late finish callbacks cannot clear newer motion during fast preference changes", () => {
+  const view = render(<Page title="ภาพรวม" />);
+  view.rerender(<Page title="สมาชิก" />);
+  const first = animate.mock.results[0].value;
+  const lateFinish = first.addEventListener.mock.calls[0][1];
+  preferReduced(true);
+  preferReduced(false);
+  view.rerender(<Page title="ตั้งค่า" />);
+  const second = animate.mock.results[1].value;
+  act(() => lateFinish());
+  preferReduced(true);
+  expect(first.cancel).toHaveBeenCalledTimes(1);
+  expect(second.cancel).toHaveBeenCalledTimes(1);
+  view.unmount();
+  expect(first.cancel).toHaveBeenCalledTimes(1);
+  expect(second.cancel).toHaveBeenCalledTimes(1);
+});
+
+test("StrictMode retains one preference listener and cleans up all active motion", () => {
+  const view = render(<React.StrictMode><Page title="ภาพรวม" /></React.StrictMode>);
+  expect(animate).not.toHaveBeenCalled();
+  expect(listeners.size).toBe(1);
+  view.rerender(<React.StrictMode><Page title="สมาชิก" /></React.StrictMode>);
+  expect(animate).toHaveBeenCalledTimes(1);
+  const animation = animate.mock.results[0].value;
+  view.unmount();
+  expect(listeners.size).toBe(0);
+  expect(animation.cancel).toHaveBeenCalledTimes(1);
+  expect(animation.removeEventListener).toHaveBeenCalledWith("finish", expect.any(Function));
 });

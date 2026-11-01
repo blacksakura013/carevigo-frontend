@@ -32,6 +32,7 @@ import {
 import LegalLinks from "./LegalLinks";
 import "../styles/brand.css";
 import { useContentMotion } from "../utils/motion";
+import { useSidebarInert } from "../utils/useSidebarInert";
 
 export function Brand({ compact = false }) {
   return (
@@ -208,6 +209,7 @@ export function PublicLayout({
 }) {
   const [open, setOpen] = useState(false);
   const sidebarRef = useRef(null);
+  useSidebarInert(sidebarRef, open, "(max-width: 900px)");
   const location = useLocation();
   const [patient, setPatient] = useState(getStoredPatient);
   const patientSession = !guestOnly && accountScope !== "admin" && hasPatientSession();
@@ -262,6 +264,7 @@ export function PublicLayout({
   }, [location.pathname]);
   useEffect(() => {
     if (!open || !window.matchMedia("(max-width: 900px)").matches) return;
+    const sidebar = sidebarRef.current;
     const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -295,7 +298,11 @@ export function PublicLayout({
       document.removeEventListener("keydown", close);
       window.removeEventListener("resize", resize);
       document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
+      if (!window.matchMedia("(max-width: 900px)").matches) {
+        const destination = sidebar?.querySelector('.nav-item[aria-current="page"]')
+          || sidebar?.querySelector(".sidebar-nav a");
+        destination?.focus();
+      } else previousFocus?.focus();
     };
   }, [open]);
   return (

@@ -2,24 +2,19 @@
 :root {
   --motion-duration-fast: 140ms;
   --motion-duration-normal: 220ms;
-  --motion-duration-slow: 280ms;
+  --motion-duration-slow: 220ms;
   --motion-ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
   --motion-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 @keyframes save-stroke-fade-in {
-  from { opacity: 0; }
+  from { opacity: .85; }
   to { opacity: 1; }
 }
 
-@keyframes save-stroke-feedback-in {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: none; }
-}
-
-@keyframes save-stroke-panel-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+@keyframes save-stroke-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes save-stroke-drawer-in {
@@ -36,16 +31,17 @@
 
   :root body :is([data-motion-feedback], .notice, .patient-guest-confirmation,
     .patient-success, .patient-saved-section) {
-    animation: save-stroke-feedback-in 180ms var(--motion-ease-out);
+    animation: save-stroke-fade-in 180ms var(--motion-ease-out);
   }
 
+  /* Forms can contain fixed calendars or dialogs; never transform their parent. */
   :root body :is([data-motion-enter="panel"], .buddhist-calendar, .review-dialog) {
-    animation: save-stroke-panel-in var(--motion-duration-normal) var(--motion-ease-out);
+    animation: save-stroke-fade-in var(--motion-duration-normal) var(--motion-ease-out);
   }
 
   :root body :is(.sidebar-backdrop, .admin-nav-backdrop,
     .admin-drawer-overlay, .review-dialog-overlay) {
-    animation: save-stroke-fade-in var(--motion-duration-fast) var(--motion-ease-out);
+    animation: save-stroke-overlay-in var(--motion-duration-fast) var(--motion-ease-out);
   }
 
   :root body .admin-member-drawer {
@@ -64,7 +60,9 @@
 
   :root body :is(.nav-item, .admin-nav-item, .admin-text-button,
     .admin-table-action, .legal-link, .staff-link, .portal-text-link,
-    .patient-history-filters button) {
+    .patient-history-filters button, .admin-home-summary > button,
+    .admin-home-category-tabs button, .cohort-report-panel button,
+    .health-progress-panel button, .health-progress-panel select) {
     transition:
       background-color var(--motion-duration-fast) var(--motion-ease-standard),
       border-color var(--motion-duration-fast) var(--motion-ease-standard),
@@ -72,14 +70,18 @@
       box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
   }
 
-  /* Moving the whole label by one pixel preserves its size and hit area. */
-  :root body :is(.btn, .icon-btn, .admin-icon-button,
-    .buddhist-date-trigger):active:not(:disabled):not([aria-disabled="true"]) {
-    transform: translateY(1px);
+  :root body .patient-success-icon {
+    animation: save-stroke-fade-in var(--motion-duration-normal) var(--motion-ease-out);
   }
 
-  :root body .patient-success-icon {
-    animation: save-stroke-feedback-in var(--motion-duration-slow) var(--motion-ease-out);
+  /* Decorative shimmer rests after a few cycles; loading text remains visible. */
+  :root body :is(.admin-skeleton, .patient-skeleton) {
+    animation-iteration-count: 3;
+  }
+
+  /* Values should appear at their actual height as soon as results are ready. */
+  :root body .admin-chart-bar {
+    transition: none;
   }
 
   :root body .patient-cancer-details {
@@ -94,6 +96,12 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
+    /* Pointer feedback stays off touch controls, whose hit area must be steady. */
+    :root body :is(.btn, .icon-btn, .admin-icon-button,
+      .buddhist-date-trigger):active:not(:disabled):not([aria-disabled="true"]) {
+      transform: translateY(1px);
+    }
+
     :root body .btn:hover:not(:disabled):not([aria-disabled="true"]):not(:active) {
       transform: translateY(-1px);
     }
@@ -103,7 +111,11 @@
     :root body .public-sidebar {
       transition:
         transform var(--motion-duration-normal) var(--motion-ease-out),
-        visibility 0s;
+        visibility 0s linear var(--motion-duration-normal);
+    }
+
+    :root body .public-sidebar.is-open {
+      transition-delay: 0s;
     }
   }
 
@@ -111,7 +123,11 @@
     :root body .admin-sidebar {
       transition:
         transform var(--motion-duration-normal) var(--motion-ease-out),
-        visibility 0s;
+        visibility 0s linear var(--motion-duration-normal);
+    }
+
+    :root body .admin-sidebar.is-open {
+      transition-delay: 0s;
     }
   }
 }

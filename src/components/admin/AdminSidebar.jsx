@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { adminLogout } from "../../api/api";
 import { Brand } from "../ui";
+import { useSidebarInert } from "../../utils/useSidebarInert";
 
 const menus = [
   { id: "dashboard", label: "ภาพรวมการดูแล", icon: LayoutDashboard },
@@ -33,10 +34,14 @@ export default function AdminSidebar({
   profile,
 }) {
   const sidebarRef = useRef(null);
+  useSidebarInert(sidebarRef, open, "(max-width: 1023px)");
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
     if (!open) return undefined;
+    const mobile = window.matchMedia("(max-width: 1023px)");
+    if (!mobile.matches) { closeRef.current(); return undefined; }
+    const sidebar = sidebarRef.current;
     const before = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -56,11 +61,22 @@ export default function AdminSidebar({
         first?.focus();
       }
     };
+    const onResize = () => {
+      if (!window.matchMedia("(max-width: 1023px)").matches) closeRef.current();
+    };
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    if (typeof mobile.addEventListener === "function") mobile.addEventListener("change", onResize);
+    else mobile.addListener?.(onResize);
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKey);
-      before?.focus?.();
+      window.removeEventListener("resize", onResize);
+      if (typeof mobile.removeEventListener === "function") mobile.removeEventListener("change", onResize);
+      else mobile.removeListener?.(onResize);
+      if (!window.matchMedia("(max-width: 1023px)").matches)
+        sidebar?.querySelector('.admin-nav-item[aria-current="page"]')?.focus();
+      else before?.focus?.();
     };
   }, [open]);
   return (
