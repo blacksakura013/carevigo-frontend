@@ -14,6 +14,8 @@ import {
   Scale,
   Search,
   UserRound,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 import {
   addHealth,
@@ -35,6 +37,8 @@ import { agreementPayload, agreementsComplete } from "../utils/legal";
 import { usePrivateDraft } from "../utils/privateDraft";
 import { formatThaiDate } from "../utils/thaiDate";
 import FormPages, { FormPage } from "../components/FormPages";
+import { getCvRiskPresentation } from "../utils/cvRisk";
+import "../styles/risk-colors.css";
 
 export const HEALTH_SECTIONS = [
   {
@@ -212,7 +216,7 @@ export function HealthEntrySummary({ values, outcomes = {} }) {
     <div className="panel-header"><h2>ผลตรวจที่กรอกครั้งนี้</h2></div>
     <div className="panel-body">
       {!selected.length && <p>ครั้งนี้ไม่ได้ระบุผลตรวจสุขภาพ สามารถข้ามผลตรวจได้ทุกหมวด</p>}
-      {selected.map(({ type, title, fields }) => <section className="form-review-section" key={type}>
+      {selected.map(({ type, title, fields }) => <section className={`form-review-section health-summary-${type}`} key={type}>
         <h3>{title}</h3>
         <dl className="form-review-values">
           {fields.filter(({ name }) => values[type][name] !== "").map(({ name, label, unit }) => <div key={name}>
@@ -301,20 +305,12 @@ const RISK_FIELDS = {
 };
 const riskDate = (value) => formatThaiDate(value, { empty: null });
 export function ThaiCvRiskCard({ risk, compact = false }) {
-  const calculated =
-    risk?.status === "calculated" &&
-    Number.isFinite(Number(risk.score)) &&
-    risk.score != null;
-  const level =
-    calculated && ["low", "moderate", "high"].includes(risk.level)
-      ? risk.level
-      : "unknown";
-  const percent = calculated
-    ? risk.displayScore ||
-      (Number(risk.score) > 30
-        ? ">30%"
-        : `${Number(risk.score).toLocaleString("th-TH", { maximumFractionDigits: 2 })}%`)
-    : "—";
+  const presentation = getCvRiskPresentation(risk);
+  const calculated = Boolean(presentation);
+  const level = presentation?.level || "unknown";
+  const percent = presentation?.percent || "—";
+  const RiskIcon = level === "low" ? CheckCircle2
+    : ["moderate", "high"].includes(level) ? AlertTriangle : Info;
   const bloodPressureDate = riskDate(risk?.inputs?.bloodPressureRecordedAt);
   const cholesterolDate = riskDate(risk?.inputs?.cholesterolRecordedAt);
   return (
@@ -327,11 +323,15 @@ export function ThaiCvRiskCard({ risk, compact = false }) {
           <HeartPulse size={24} />
         </span>
         <div>
-          <span className="eyebrow">THAI CV RISK SCORE</span>
+          <span className="eyebrow">CVD RISK · THAI CV RISK SCORE</span>
           <h2>ความเสี่ยงโรคหัวใจและหลอดเลือดใน 10 ปี</h2>
+          <span className={`patient-cv-status patient-cv-status-${level}`}>
+            <RiskIcon size={20} aria-hidden="true" />
+            {presentation?.label || (risk?.status === "ineligible" ? "อยู่นอกเงื่อนไขการประเมิน" : "ยังประเมินไม่ได้")}
+          </span>
           <p>
             {calculated
-              ? risk.label
+              ? `ระดับความเสี่ยง ${presentation.range}`
               : risk?.reason ||
                 risk?.label ||
                 "เพิ่มข้อมูลส่วนตัวและผลตรวจ เพื่อให้ระบบประเมินความเสี่ยงได้"}
@@ -361,7 +361,7 @@ export function ThaiCvRiskCard({ risk, compact = false }) {
           <strong>{percent}</strong>
           <span>
             {calculated
-              ? "ผลประเมินจากระบบ"
+              ? "โอกาสเกิดโรคในระยะ 10 ปี"
               : risk?.status === "ineligible"
                 ? "อยู่นอกเงื่อนไขการประเมิน"
                 : "ยังประเมินไม่ได้"}
@@ -369,13 +369,13 @@ export function ThaiCvRiskCard({ risk, compact = false }) {
         </div>
       </div>
       <div className="patient-cv-legend">
-        <span className="patient-cv-level-low">
+        <span className={`patient-cv-level-low${level === "low" ? " is-current" : ""}`}>
           <i /> ต่ำ &lt;10%
         </span>
-        <span className="patient-cv-level-moderate">
+        <span className={`patient-cv-level-moderate${level === "moderate" ? " is-current" : ""}`}>
           <i /> ปานกลาง 10–20%
         </span>
-        <span className="patient-cv-level-high">
+        <span className={`patient-cv-level-high${level === "high" ? " is-current" : ""}`}>
           <i /> สูง &gt;20%
         </span>
         <span className="patient-cv-model">
@@ -809,7 +809,7 @@ export default function AddHealth() {
                   return (
                     <FormPage id={type} key={type}>
                     <section
-                      className={`panel patient-health-card ${outcome?.status === "success" ? "patient-health-card-saved" : ""}`}
+                      className={`panel patient-health-card patient-health-card-${type} ${outcome?.status === "success" ? "patient-health-card-saved" : ""}`}
                       data-motion-enter="panel"
                       key={type}
                     >

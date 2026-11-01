@@ -24,6 +24,7 @@ import {
   healthMeasurementErrors,
   healthRecordPayloads,
   HealthEntrySummary,
+  ThaiCvRiskCard,
 } from "./AddHealth";
 import Agreements from "../components/Agreements";
 import { agreementPayload, agreementsComplete } from "../utils/legal";
@@ -69,6 +70,23 @@ function newRequestId() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 const acknowledgementTime = value => typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
+const ASSESSMENT_FIELDS = new Set(["age", "birthDate", "gender", "sex", "smokingStatus", "smokingQuitMonths", "chronicDiseasesConfirmed", "systolic", "totalCholesterol", "total"]);
+function acceptedAssessment(value) {
+  if (!value || !["calculated", "incomplete", "ineligible", "pending"].includes(value.status))
+    return { status: "pending", score: null, reason: "ระบบรับข้อมูลแล้ว แต่ยังไม่ได้รับผลประเมิน CVD risk จากระบบ" };
+  const assessment = { status: value.status, score: typeof value.score === "number" && Number.isFinite(value.score) ? value.score : null };
+  for (const field of ["label", "reason"])
+    if (typeof value[field] === "string") assessment[field] = value[field].slice(0, 1000);
+  if (typeof value.displayScore === "string" && /^[<>]?\d+(?:\.\d+)?%$/.test(value.displayScore)) assessment.displayScore = value.displayScore;
+  if (typeof value.source === "string" && value.source.startsWith("https://www.rama.mahidol.ac.th/")) assessment.source = value.source;
+  if (Array.isArray(value.missing)) assessment.missing = value.missing.filter(field => ASSESSMENT_FIELDS.has(field));
+  assessment.calculatedAt = acknowledgementTime(value.calculatedAt);
+  assessment.inputs = {};
+  if (value.inputs?.profileSource === "submitted-profile") assessment.inputs.profileSource = "submitted-profile";
+  for (const field of ["bloodPressureRecordedAt", "cholesterolRecordedAt"])
+    assessment.inputs[field] = acknowledgementTime(value.inputs?.[field]);
+  return assessment;
+}
 
 function GuestMeasurementSummary({ values, recordCount, submitted = false }) {
   if (recordCount) return <HealthEntrySummary values={values} />;
@@ -87,6 +105,10 @@ function GuestSubmittedSummary({ summary, resultRef, onStartNew }) {
       <p>ระบบรับข้อมูลแล้ว สรุปด้านล่างเป็นข้อมูลที่คุณส่งในครั้งนี้</p>
       <Button onClick={onStartNew}><Plus size={19} /> บันทึกรายการใหม่</Button>
     </section>
+    <div className="guest-submitted-assessment">
+      <p className="patient-server-assessment">ประเมินจากข้อมูลครั้งนี้ · รอเจ้าหน้าที่ตรวจสอบ</p>
+      <ThaiCvRiskCard risk={summary.assessment} />
+    </div>
     <section className="panel" aria-label="ข้อมูลการส่งครั้งนี้">
       <div className="panel-header"><h2>ข้อมูลการส่ง</h2></div>
       <div className="panel-body">
@@ -247,7 +269,7 @@ export default function GuestHealth() {
       if (!activeRef.current) return;
       const data = response.data?.data;
       if (!data?.submissionId) throw new Error("Missing submission acknowledgement");
-      setConfirmation({ ...submitted, submittedAt: acknowledgementTime(data.submittedAt), reviewDueAt: acknowledgementTime(data.reviewDueAt) });
+      setConfirmation({ ...submitted, assessment: acceptedAssessment(data.thaiCvRisk), submittedAt: acknowledgementTime(data.submittedAt), reviewDueAt: acknowledgementTime(data.reviewDueAt) });
       // Keep this entry's summary only in memory; clear the editable form now.
       setCitizenId("");
       setProfile({ ...EMPTY_PROFILE });
@@ -548,7 +570,7 @@ export default function GuestHealth() {
                   return (
                     <FormPage id={section.type} key={section.type}>
                     <section
-                      className="panel patient-health-card"
+                      className={`panel patient-health-card patient-health-card-${section.type}`}
                       data-motion-enter="panel"
                       key={section.type}
                     >

@@ -1,0 +1,77 @@
+/* Strong semantic contrast with a label and icon, independent of color vision. */
+:root body .patient-cv-risk {
+  --cv-accent: #42566a;
+  --cv-tint: #f0f4f8;
+  margin: 0;
+  border: 2px solid var(--cv-accent);
+  border-top-width: 7px;
+  background: var(--cv-tint);
+  overflow: hidden;
+}
+:root body .patient-cv-risk-low { --cv-accent: #14623d; --cv-tint: #eaf8ef; }
+:root body .patient-cv-risk-moderate { --cv-accent: #735000; --cv-tint: #fff5cc; border-color: #b98000; }
+:root body .patient-cv-risk-high { --cv-accent: #a5232a; --cv-tint: #fff0f0; }
+:root body .patient-cv-risk .patient-cv-risk-content { gap: 20px; padding: clamp(20px, 3vw, 32px); align-items: flex-start; }
+:root body .patient-cv-risk-content > .patient-icon { background: var(--cv-accent); color: #fff; flex: 0 0 48px; }
+:root body .patient-cv-risk .eyebrow { color: var(--cv-accent); font-weight: 700; letter-spacing: .04em; }
+:root body .patient-cv-risk h2 { color: #182e2c; font-size: 1.4rem; line-height: 1.65; }
+:root body .patient-cv-risk p { color: #374b49; line-height: 1.8; }
+:root body .patient-cv-status {
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: 14px; padding: 9px 14px; max-width: 100%;
+  border-radius: 10px; background: var(--cv-accent); color: #fff;
+  font-size: 1.25rem; font-weight: 700; line-height: 1.65;
+}
+:root body .patient-cv-status > svg { flex-shrink: 0; }
+:root body .patient-cv-score {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 18px 22px; border: 1px solid var(--cv-accent); border-radius: 16px;
+  background: #fff; min-width: 0; max-width: 100%; width: 13rem; flex: 0 1 13rem;
+  container-type: inline-size;
+}
+:root body .patient-cv-risk .patient-cv-score strong {
+  color: var(--cv-accent); font-size: clamp(2rem, 26cqi, 4.25rem);
+  font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow-wrap: normal;
+}
+:root body .patient-cv-risk .patient-cv-score > span { color: #374b49; font-size: 1rem; line-height: 1.7; }
+:root body .patient-cv-risk .patient-cv-legend { background: #fff; padding: 16px 24px; border-top-color: #d1ddd8; gap: 12px; }
+:root body .patient-cv-legend > span:not(.patient-cv-model) {
+  padding: 7px 10px; border: 1px solid currentColor; border-radius: 8px;
+  font-size: 1rem; font-weight: 600; line-height: 1.6;
+}
+:root body .patient-cv-legend .patient-cv-level-low { color: #14623d; background: #eaf8ef; }
+:root body .patient-cv-legend .patient-cv-level-moderate { color: #735000; background: #fff5cc; }
+:root body .patient-cv-legend .patient-cv-level-high { color: #a5232a; background: #fff0f0; }
+:root body .patient-cv-legend .is-current { border-width: 3px !important; }
+:root body .patient-cv-legend i { width: 10px; height: 10px; background: currentColor; flex-shrink: 0; }
+:root body .patient-cv-model { width: 100%; margin: 0; color: #374b49; font-size: 1rem; }
+:root body .patient-cv-risk-compact .patient-cv-score { width: 13rem; text-align: center; }
+:root body .patient-cv-risk-compact .patient-cv-score strong { font-size: clamp(2rem, 26cqi, 2.5rem); }
+
+/* Measurement categories retain their own named, clearly separated headings. */
+:root body .patient-health-card { --section-accent: #116b61; --section-tint: #eaf6f3; border-top: 5px solid var(--section-accent); }
+:root body .patient-health-card-blood_pressure { --section-accent: #a73946; --section-tint: #fff0f2; }
+:root body .patient-health-card-sugar { --section-accent: #205da5; --section-tint: #edf4ff; }
+:root body .patient-health-card-cholesterol { --section-accent: #795700; --section-tint: #fff7de; }
+:root body .patient-health-card .patient-panel-title { background: var(--section-tint); border-bottom: 1px solid #cbd9d2; }
+:root body .patient-health-card .patient-panel-title h2 { color: var(--section-accent); font-weight: 700; }
+:root body .patient-health-card .patient-icon { color: #fff; background: var(--section-accent); }
+:root body .patient-health-card .patient-unit-input > .input { border-color: #8b9f97; color: #172f29; background: #fff; font-weight: 600; }
+:root body .patient-health-card .patient-unit-input > .input:focus { border-color: var(--section-accent); outline-color: var(--section-accent); }
+:root body .patient-health-card .patient-unit-input > .input[aria-invalid="true"] { border-color: #a5232a; }
+:root body .health-summary-blood_pressure { border-left: 4px solid #a73946; padding-left: 16px; }
+:root body .health-summary-sugar { border-left: 4px solid #205da5; padding-left: 16px; }
+:root body .health-summary-cholesterol { border-left: 4px solid #795700; padding-left: 16px; }
+:root body .health-summary-bmi { border-left: 4px solid #116b61; padding-left: 16px; }
+
+@media (max-width: 680px) {
+  :root body .patient-cv-risk .patient-cv-risk-content { gap: 16px; }
+  :root body .patient-cv-risk-content > div:nth-child(2) { flex-basis: calc(100% - 64px); }
+  :root body .patient-cv-risk-content > .patient-cv-score { flex: 1 1 100%; width: 100%; margin: 0; }
+  :root body .patient-cv-risk .patient-cv-legend { padding: 16px; }
+  :root body .patient-cv-risk h2 { font-size: 1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root body .patient-cv-risk { animation: none; }
+}

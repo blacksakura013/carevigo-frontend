@@ -322,7 +322,7 @@ test("validates incomplete BP before sending and allows standalone BMI using ser
     height: 165,
     agreements: expectedAgreements(true),
   });
-  expect(screen.getByText(/ผลประเมินทดสอบจากระบบ/)).toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "ความเสี่ยงโรคหัวใจและหลอดเลือด" })).getByText("ความเสี่ยงต่ำ", { exact: true })).toBeInTheDocument();
   expect(screen.getByText("8.5%")).toBeInTheDocument();
 });
 
@@ -521,7 +521,8 @@ test("guest acknowledgement summarizes only the submitted entry and a new entry 
   expect(screen.getByRole("region", { name: "สรุปข้อมูลที่ส่งครั้งนี้" })).toHaveTextContent("120 mmHg");
   expect(screen.queryByText(/1234567890123|private-receipt|secret|120\/80/)).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /ประวัติ|เข้าสู่/ })).not.toBeInTheDocument();
-  expect(screen.queryByRole("region", { name: /ความเสี่ยง/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "ความเสี่ยงโรคหัวใจและหลอดเลือด" })).toHaveTextContent("ระบบรับข้อมูลแล้ว แต่ยังไม่ได้รับผลประเมิน CVD risk จากระบบ");
+  expect(screen.getByRole("region", { name: "ความเสี่ยงโรคหัวใจและหลอดเลือด" })).toHaveClass("patient-cv-risk-unknown");
   fireEvent.click(screen.getByRole("button", { name: "บันทึกรายการใหม่" }));
   expect(screen.getByLabelText("เลขบัตรประชาชน")).toHaveValue("");
   expect(screen.getByLabelText("ชื่อ")).toHaveValue("");
